@@ -7,7 +7,7 @@ export function render(root, app) {
   app.migas([{ t: 'Flota' }]);
   const nAl = A.alertas.filter((a) => ['critica', 'alta', 'media'].includes(a.severidad));
   const top = A.alertas.filter((a) => a.severidad !== 'info').slice(0, 4);
-  const fuente = app.store.base ? 'Excel cargado por el usuario' : `Excel del repositorio (${cfg.excelRuta})`;
+  const fuente = app.store.base ? 'Excel cargado por el usuario' : `Excel original (${cfg.excelRuta.split('/').pop()})`;
   const nApp = app.store.agregados.inspecciones.length;
 
   root.innerHTML = `
@@ -15,7 +15,7 @@ export function render(root, app) {
     <div><h1>Flota · ${esc(A.modelo.equipo.flota || cfg.equipo.flota)} ${info('<p><b>¿Qué equipo necesita atención primero?</b> El semáforo de cada equipo es el peor estado de sus puntos de inspección. Clic en la tarjeta para entrar al equipo.</p><p>El modelo de datos identifica el equipo en cada registro: está preparado para sumar más palas a la flota con el mismo Excel.</p>')}</h1></div>
     <div class="fila no-print">
       <button class="btn" id="bCargar" title="Cargar un historial nuevo (mismo formato de hojas)">Cargar Excel…</button>
-      ${app.store.base ? '<button class="btn" id="bRepo">Usar Excel del repositorio</button>' : ''}
+      ${app.store.base ? '<button class="btn" id="bRepo">Usar Excel original</button>' : ''}
     </div>
   </div>
   <div class="rejilla c-2-1">

@@ -3,7 +3,7 @@ import { CONFIG } from './config.js';
 import { leerLibro, fusionar, exportarLibro } from './datos.js';
 import { analizar, historialAlertas } from './reglas.js';
 import * as almacen from './almacen.js';
-import { esc } from './ui/formato.js';
+import { esc, recurso } from './ui/formato.js';
 
 import * as vFlota from './vistas/flota.js';
 import * as vEquipo from './vistas/equipo.js';
@@ -89,14 +89,14 @@ export const app = {
   async restaurarExcelRepo() {
     this.store.base = null; this.guardar();
     this.base = await leerExcelRepo(); this.recalcular(); render();
-    this.toast('Se usa nuevamente el Excel del repositorio.');
+    this.toast('Se usa nuevamente el Excel original.');
   },
   pedirExcel() { document.getElementById('archivoExcel').click(); },
 };
 window.app = app; // útil para depurar desde la consola
 
 async function leerExcelRepo() {
-  const r = await fetch(CONFIG.excelRuta, { cache: 'no-cache' });
+  const r = await fetch(recurso(CONFIG.excelRuta), { cache: 'no-cache' });
   if (!r.ok) throw new Error(`No se encontró ${CONFIG.excelRuta} (${r.status})`);
   return leerLibro(window.XLSX, new Uint8Array(await r.arrayBuffer()), CONFIG);
 }

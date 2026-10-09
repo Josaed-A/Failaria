@@ -1,0 +1,64 @@
+# Entrega de Failaria
+
+Cómo se entrega la plataforma sin depender de GitHub ni de un servidor local, cómo se genera el archivo y cómo comprobarlo antes de enviarlo.
+
+## Qué se entrega
+
+| Archivo | Uso |
+|---|---|
+| `Failaria.html` | La plataforma completa en un solo archivo. Se abre con doble clic en Chrome, Edge o Firefox. |
+| `Failaria_entrega.zip` | `Failaria.html` + `LEEME.txt`. Para aulas virtuales o correos que bloquean adjuntos `.html`. |
+
+El archivo trae adentro el código, las librerías (SheetJS, Chart.js, Three.js), los estilos, el Excel del historial y las imágenes de inspección. No necesita internet, Python, servidor, GitHub ni instalación. Pesa ≈ 6 MB, casi todo por los esquemas de inspección.
+
+Solo dos funciones dependen de algo externo:
+
+- **IA con llamada directa a la API de Claude:** requiere internet y una clave propia. Sin clave, la vista arma el prompt para copiarlo en cualquier asistente.
+- **Datos registrados:** se guardan en el navegador del equipo donde se abre el archivo. Para llevarlos a otro equipo se usa **Historial → Respaldo JSON** o **Exportar Excel**.
+
+## Cómo generarla
+
+Desde la raíz del repositorio:
+
+```bash
+node herramientas/empaquetar.mjs
+```
+
+Salida en `dist/`, carpeta ignorada por git:
+
+```text
+dist/Failaria.html
+dist/Failaria_entrega.zip
+```
+
+Requisitos: Node 18 o superior. La primera vez se necesita internet, porque `npx` descarga esbuild (versión fija en el script). Hay que volver a generar el archivo después de cada cambio en `src/`, `index.html`, `assets/` o `data/`. El comentario al inicio del HTML y `LEEME.txt` indican el commit y la fecha de la versión.
+
+## Cómo funciona el empaquetado
+
+Abrir `index.html` como archivo no sirve, porque los navegadores bloquean los módulos JavaScript y la lectura de archivos vecinos en `file://`. El script resuelve las dos cosas:
+
+1. **Código.** Agrupa `src/app.js` y todo lo que importa, incluidos Three.js y OrbitControls, en un script clásico con esbuild. Los `import()` dinámicos quedan dentro del mismo archivo.
+2. **Librerías y estilos.** Incrusta `vendor/*.js` y `src/estilos.css` dentro del HTML.
+3. **Datos e imágenes.** Embebe el Excel de `data/` y las imágenes de `assets/` como data URL en `window.__RECURSOS`. La función `recurso()` de `src/ui/formato.js` busca ahí antes de usar la ruta relativa, así el mismo código sirve para el sitio normal y para la versión entregable.
+
+Regla para cambios futuros: toda ruta a un archivo local, sea imagen, Excel u otro recurso, debe pasar por `recurso()` o `rutaImagen()`. Si no, funcionará en el servidor local pero no en `Failaria.html`.
+
+## Comprobar antes de entregar
+
+1. Copiar `Failaria.html` a una carpeta vacía o a un pendrive, sin nada al lado.
+2. Abrirlo con doble clic y recorrer Flota, Equipo, Simulador, Plan, Zona, Punto, Calidad de datos y Reporte.
+3. Revisar que se vean los esquemas con sus puntos, el modelo 3D y los gráficos.
+4. En **Calidad de datos → Archivos de imagen referenciados**, todas las imágenes deben decir «✓ disponible».
+
+La prueba automática equivalente se hizo con Chromium headless abriendo el archivo por `file://` desde una carpeta aislada: todas las vistas cargaron con datos, imágenes y 3D, sin errores de consola. En Firefox se comprobó que abre y carga el historial desde el archivo.
+
+## Link público (opcional)
+
+Si además se quiere una URL, cualquiera de estas opciones publica la plataforma tal como está en el repositorio, sin construir nada:
+
+| Opción | Pasos |
+|---|---|
+| GitHub Pages | En GitHub: **Settings → Pages → Deploy from a branch → `main` / root**. Queda en `https://<usuario>.github.io/Failaria/`. |
+| Netlify Drop | Entrar a `app.netlify.com/drop` y arrastrar la carpeta del repositorio. Entrega una URL sin usar GitHub. |
+
+El archivo `Failaria.html` también se puede subir tal cual a cualquier hosting estático o a una carpeta compartida de Google Drive u OneDrive para descargarlo.

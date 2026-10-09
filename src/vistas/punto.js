@@ -73,7 +73,7 @@ export function render(root, app, [codigo]) {
       <div class="fila entre"><h2 style="margin:0">Fotos y esquema</h2>
         <label class="btn chico no-print">+ Agregar foto (${fFecha(A.ultimaInsp.fecha)})<input type="file" accept="image/*" capture="environment" id="fFoto" hidden></label></div>
       <div class="espacio"></div>
-      ${galeriaHTML([{ src: cfg.esquemasDir + p.esquema, pie: `Esquema ${z.nombre} (ubicación de ${codigo})` }, ...fotos])}
+      ${galeriaHTML([{ src: rutaImagen(cfg.esquemasDir + p.esquema, cfg), pie: `Esquema ${z.nombre} (ubicación de ${codigo})` }, ...fotos])}
     </div>
   </div>
   <div class="espacio"></div>

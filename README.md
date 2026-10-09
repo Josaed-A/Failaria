@@ -1,22 +1,37 @@
-# Failaria · Integridad estructural de la pala Hitachi EX3600
+# Failaria
+
+**Plataforma web de integridad estructural y mantenimiento basado en condición** para la pala hidráulica Hitachi EX3600 (equipo 3600-01).
+
+Failaria convierte el historial de inspecciones de grietas en decisiones de mantenimiento: qué punto reparar primero, cuándo detener el equipo, qué datos de campo no son confiables y **cuándo y cómo fallaría cada pieza** si no se interviene. Reúne en una sola herramienta el seguimiento de grietas por punto, las alertas por umbral, un simulador de falla por fatiga con modelo 3D, la planificación de tareas y el reporte de inspección.
+
+Es una aplicación web que corre completa en el navegador, sin servidor, base de datos ni instalación. Funciona en PC y en tablet.
 
 Taller en Énfasis II — Gestión de Mantenimiento · Grupo 5
 
-Sitio web estático que convierte el historial de inspecciones de grietas de la pala **EX3600 (equipo 3600-01)** en decisiones de mantenimiento: qué punto reparar primero, cuándo detener el equipo, qué datos de campo no son confiables y **cuándo y cómo fallaría cada pieza** si no se interviene.
-
-**Link público:** _(pendiente: URL de GitHub Pages)_
-
-![Vista del equipo](docs/capturas/equipo.jpg)
+![Vista del equipo: KPIs, modelo 3D por estado y «¿qué pasa si…?»](docs/capturas/equipo.jpg)
 
 ## Cómo abrirla
 
-| Opción | Pasos |
-|---|---|
-| GitHub Pages | Abrir el link público (PC o tablet). |
-| Local (Windows) | Doble clic en `iniciar.bat` (requiere Python) → abre `http://localhost:8000`. |
-| Local (cualquier SO) | `python -m http.server 8000` en esta carpeta → `http://localhost:8000`. |
+| Opción | Para qué | Pasos |
+|---|---|---|
+| **Versión entregable** | Entrega y evaluación en cualquier PC | Doble clic en `Failaria.html`. Es un solo archivo con todo adentro: código, librerías, Excel e imágenes. No necesita internet, Python, servidor ni GitHub. |
+| Desde el código fuente | Desarrollo | Doble clic en `iniciar.bat` (Windows, requiere Python) o `python -m http.server 8000` en esta carpeta → `http://localhost:8000`. |
+| Link público (opcional) | Compartir por URL | Publicar la carpeta en GitHub Pages o Netlify (ver [docs/ENTREGA.md](docs/ENTREGA.md)). |
 
-Abrir `index.html` con doble clic no funciona (los navegadores bloquean módulos en `file://`); la página lo avisa. Los datos se cargan solos desde `data/EX3600_historial_grietas.xlsx`; **Flota → Cargar Excel…** acepta otro historial con las mismas hojas.
+Abrir `index.html` con doble clic no funciona, porque los navegadores bloquean los módulos JavaScript en `file://`; la página lo avisa. Los datos se cargan solos desde `data/EX3600_historial_grietas.xlsx`, y **Flota → Cargar Excel…** acepta otro historial con las mismas hojas.
+
+### Generar la versión entregable
+
+```bash
+node herramientas/empaquetar.mjs
+```
+
+| Archivo generado | Contenido |
+|---|---|
+| `dist/Failaria.html` | La plataforma completa en un archivo (≈ 6 MB) |
+| `dist/Failaria_entrega.zip` | `Failaria.html` + `LEEME.txt`, para plataformas o correos que no aceptan `.html` |
+
+Requiere Node 18 o superior. La primera vez necesita internet, porque `npx` descarga esbuild para agrupar el código. La plataforma en sí no usa npm. Detalle, verificación y opciones de publicación en [docs/ENTREGA.md](docs/ENTREGA.md).
 
 ## Cómo está pensada la interfaz
 
@@ -39,9 +54,17 @@ Cada vista muestra solo lo necesario para decidir. Las explicaciones (reglas, su
 | **Reporte** | PDF en el orden del formato | Resumen, plan, zonas, alertas, diagnóstico IA |
 | **IA** | Diagnóstico asistido | Prompt estructurado o llamada a la API de Claude |
 
+## Galería
+
+| | |
+|---|---|
+| ![Flota](docs/capturas/flota.jpg) **Flota:** semáforo por equipo y lo más urgente | ![Alertas](docs/capturas/alertas.jpg) **Alertas:** qué requiere acción hoy y exposición sobre umbrales |
+| ![Zona brazo](docs/capturas/zona_brazo.jpg) **Zona:** esquema con puntos clicables por estado | ![Punto CU-02](docs/capturas/punto_CU-02.jpg) **Punto:** tendencia, umbrales, proyección y qué hacer |
+| ![Plan](docs/capturas/plan.jpg) **Plan:** tablero de tareas sembrado desde el historial | ![Calidad de datos](docs/capturas/calidad.jpg) **Calidad de datos:** datos sospechosos marcados, decide el usuario |
+
 ## Simulador de falla
 
-![Simulador](docs/capturas/simulador.jpg)
+![Simulador: mapa de daño tipo FEA y sobreesfuerzo aplicado con el mouse sobre el boom](docs/capturas/simulador.jpg)
 
 - ▶ hace avanzar las 12 grietas con la **ley de Paris** calibrada con la tasa medida de cada punto, hasta la longitud crítica `a_c = 1,6 × Danger`.
 - El color de la estructura (azul → rojo) muestra **dónde y cuánto se agrava** el daño.
@@ -50,6 +73,8 @@ Cada vista muestra solo lo necesario para decidir. Las explicaciones (reglas, su
 - **Reporte de esfuerzo y falla:** horas sobrecargado, sobreesfuerzo medio y máximo, dosis de daño y mm de crecimiento por tiempo frente a sobrecarga. Al fallar indica la causa: *por horas de uso*, *fatiga acelerada por sobrecargas* o *fractura por fuerza excesiva* (súbita, al cruzar el FAD).
 - Modelo 3D paramétrico de la EX3600 según los esquemas de inspección: boom curvo con pie bifurcado y soportes de cilindros, brazo ahusado con orejas en abanico, cucharón con rejillas de desgaste y bujes, cilindros con vástago, tren de rodaje con zapatas.
 - **Modo por pieza** (General · Boom · Brazo · Cucharón) con panel de inspección punto a punto y **lupa de grieta**: vista cercana con el campo de tensión, la zona plástica y la evolución prevista con y sin esfuerzo; arrastrar sobre la lupa carga solo ese punto.
+
+![Simulador en modo pieza: cucharón con inspección punto a punto y lupa de grieta de CU-02](docs/capturas/simulador_pieza.jpg)
 
 ## Planificación de mantenimiento
 
@@ -90,19 +115,24 @@ src/vistas/*.js       flota, equipo, simulador, planificacion, zona, punto, regi
 src/ui/ayuda.js       icono ⓘ con información adicional
 src/ui/pala3d.js      pala 3D paramétrica (vigas lofteadas)  ·  src/ui/simulador3d.js  mapa FEA + tirar con el mouse
 src/ui/grafico.js     Chart.js  ·  src/ui/esquema.js  esquemas con hotspots
+src/ui/lupa.js        lupa de grieta  ·  src/ui/formato.js  formatos y recurso(): rutas de imágenes y Excel
 vendor/               SheetJS, Chart.js + annotation, Three.js, OrbitControls (versiones fijas)
-docs/                 README (índice), MANTENIMIENTO_Y_FALLA, SIMULADOR, USO_IA, historial/, referencia/, capturas/
-tests/verify.cjs      86 verificaciones de datos.js, reglas.js, falla.js y tareas.js
+herramientas/         empaquetar.mjs: genera la versión entregable en un solo archivo (dist/, ignorada por git)
+docs/                 README (índice), ENTREGA, MANTENIMIENTO_Y_FALLA, SIMULADOR, USO_IA, historial/, referencia/, capturas/
+tests/verify.cjs      93 verificaciones de datos.js, reglas.js, falla.js y tareas.js
 ```
 
 ## Verificación
 
 ```bash
-node tests/verify.cjs
+node tests/verify.cjs              # lógica: 93 verificaciones
+node herramientas/empaquetar.mjs   # versión entregable en dist/
 ```
+
+La versión entregable se probó abriéndola como archivo local en Chromium, sin carpetas al lado: todas las vistas cargan con datos, imágenes y 3D, sin errores de consola.
 
 ## Persistencia y privacidad
 
-Inspecciones registradas, fotos y decisiones se guardan en el navegador (`localStorage`, clave `ex3600.v1`). Respaldo: **Historial → Respaldo JSON** o **Exportar Excel**. La clave de API para la IA solo se guarda si el usuario lo pide, y solo en su navegador.
+Inspecciones registradas, fotos, decisiones y tareas se guardan en el navegador del equipo donde se abre la plataforma (`localStorage`, clave `ex3600.v1`); no salen del equipo. Respaldo: **Historial → Respaldo JSON** o **Exportar Excel**. La clave de API para la IA solo se guarda si el usuario lo pide, y solo en su navegador.
 
 Documentación completa: [docs/README.md](docs/README.md). Uso de IA en el desarrollo: [docs/USO_IA.md](docs/USO_IA.md).

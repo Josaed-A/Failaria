@@ -1,21 +1,23 @@
-# CLAUDE.md — Plataforma de integridad estructural EX3600
+# CLAUDE.md — Failaria (integridad estructural, pala EX3600)
 
 Índice de documentación en **[docs/README.md](docs/README.md)**; plan original por fases en [docs/historial/PLAN_FASES.md](docs/historial/PLAN_FASES.md).
 
 ## Qué es
-Sitio web estático tipo "simulador" (mismo estilo que `simulador_web_original` de GARDIAN):
-abre `index.html` y funciona, sin backend ni servicios externos obligatorios.
+**Failaria**: plataforma web de integridad estructural y mantenimiento basado en condición. Sitio estático tipo "simulador"
+(mismo estilo que `simulador_web_original` de GARDIAN), sin backend ni servicios externos obligatorios.
 Monitorea grietas de la pala Hitachi EX3600 (equipo 3600-01): flota → equipo → zona → punto → historial de la grieta.
 Curso: Taller en Énfasis II — Gestión de Mantenimiento (Grupo 5). Idioma de UI, código y comentarios: **español**.
 
 ## Stack (no cambiar sin preguntar)
 - HTML + CSS + **JavaScript vanilla con ES modules**. Sin framework, sin bundler, sin npm en runtime.
+  esbuild se usa **solo al construir** la versión entregable (`herramientas/empaquetar.mjs`, vía npx, versión fija).
 - Librerías **vendorizadas** en `vendor/` (versiones fijas, sin CDN en producción):
   - `xlsx.full.min.js` (SheetJS) → leer/escribir Excel en el navegador.
   - `chart.umd.min.js` (Chart.js 4) + `chartjs-plugin-annotation` → tendencias con bandas Caution/Danger.
   - `three.module.min.js` (Three.js) → modelo 3D esquemático (fase 4).
 - Persistencia: `localStorage` (clave `ex3600.v1`) + exportar/importar Excel/JSON. Envolver accesos en try/catch.
-- Despliegue: GitHub Pages (carpeta raíz). Debe funcionar también abriendo el archivo local; si `fetch` de archivos locales falla por `file://`, permitir cargar el Excel con `<input type=file>` o servir con `python -m http.server`.
+- Entrega: `node herramientas/empaquetar.mjs` → `dist/Failaria.html` (un solo archivo con código, vendor, CSS, Excel e imágenes embebidos; abre con doble clic en `file://`) y `dist/Failaria_entrega.zip`. `dist/` está en .gitignore. Detalle en `docs/ENTREGA.md`.
+- Desarrollo: `python -m http.server` (o `iniciar.bat`). GitHub Pages / Netlify son opcionales para un link público.
 
 ## Estructura
 ```
@@ -32,7 +34,8 @@ src/ui/simulador3d.js mapa de daño FEA por vértice, grietas a escala, tirar co
 src/ui/lupa.js        lupa de grieta 2D (campo de Irwin, zona plástica, evolución con/sin carga, arrastrar = esfuerzo)
 assets/esquemas|fotos imágenes referenciadas por la columna "Imagen" del Excel
 data/                 Excel original (fuente de verdad; NO editarlo)
-tests/verify.cjs      verificación de reglas.js con node (sin dependencias)
+tests/verify.cjs      verificación de la lógica pura con node (sin dependencias, 93 checks)
+herramientas/         empaquetar.mjs: versión entregable en un solo archivo (dist/)
 ```
 
 ## Reglas de trabajo
@@ -40,6 +43,7 @@ tests/verify.cjs      verificación de reglas.js con node (sin dependencias)
 - **Poco texto en pantalla**: títulos y datos a la vista; explicaciones, reglas y supuestos dentro de `info('…')` (ⓘ). No volver a poner párrafos explicativos en las vistas.
 - Cuidado con el nombre `info`: no declarar variables locales con ese nombre en las vistas (sombrea la importación).
 - Nombre de la plataforma en la interfaz: **Failaria** (subtítulo «Integridad estructural · Pala Hitachi EX3600»).
+- Toda ruta a un archivo local (imagen, Excel) pasa por `recurso()` o `rutaImagen()` de `src/ui/formato.js`: en `Failaria.html` los recursos están embebidos en `window.__RECURSOS`. Un `fetch`/`src` directo funciona en el servidor pero falla en la entrega. Tras cambios, regenerar y probar `dist/Failaria.html` abierto por `file://`.
 - El plan de mantenimiento se siembra una vez desde el historial (`tareas.planInicial`, flag `store.planSembrado`).
 - Prueba visual: `python -m http.server 8765` + Playwright (chromium headless con `--use-angle=swiftshader`) recorre las rutas y comprueba 0 errores de consola.
 - Nunca convertir celda vacía en 0: vacío = **N/I**. 0 = sin grieta detectable.

@@ -72,7 +72,11 @@ export function render(root, app) {
   activarDecisiones(root, app);
   root.querySelectorAll('#imgs li').forEach(async (li) => {
     const s = li.querySelector('span');
-    try { const r = await fetch(li.dataset.src, { method: 'HEAD' }); s.textContent = r.ok ? '✓ disponible' : '✗ no encontrado'; s.style.color = r.ok ? '#5ccf8c' : '#ff8080'; }
+    const marcar = (ok) => { s.textContent = ok ? '✓ disponible' : '✗ no encontrado'; s.style.color = ok ? '#5ccf8c' : '#ff8080'; };
+    // Versión entregable: lo embebido está disponible; lo que no se embebió no existe en el repositorio.
+    if (li.dataset.src.startsWith('data:')) return marcar(true);
+    if (window.__RECURSOS) return marcar(false);
+    try { const r = await fetch(li.dataset.src, { method: 'HEAD' }); marcar(r.ok); }
     catch { s.textContent = '(no verificable)'; }
   });
 }

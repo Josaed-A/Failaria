@@ -37,10 +37,15 @@ export const sevHTML = (s) => `<span class="sev sev-${s}">${{ critica: 'Crítica
 
 export const COLOR = { Normal: '#2e9e5b', Alerta: '#e0a020', 'Crítico': '#d64545', 'N/I': '#7a8599', sospechoso: '#9b6bd6' };
 
+// En la versión entregable (un solo archivo HTML, ver herramientas/empaquetar.mjs) las imágenes y el Excel
+// van embebidos en window.__RECURSOS como data URL; en el sitio normal se usa la ruta relativa.
+export const recurso = (ruta) => (typeof window !== 'undefined' && window.__RECURSOS?.[ruta]) || ruta;
+
 export function rutaImagen(img, cfg) {
   if (!img) return '';
-  if (img.startsWith('data:') || img.includes('/')) return img;
-  return (/\.(png)$/i.test(img) && Object.values(cfg.zonas).some((z) => z.esquema === img) ? cfg.esquemasDir : cfg.fotosDir) + img;
+  if (img.startsWith('data:')) return img;
+  if (img.includes('/')) return recurso(img);
+  return recurso((/\.(png)$/i.test(img) && Object.values(cfg.zonas).some((z) => z.esquema === img) ? cfg.esquemasDir : cfg.fotosDir) + img);
 }
 
 export function el(html) {

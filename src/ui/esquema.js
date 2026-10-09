@@ -1,5 +1,5 @@
 // Esquema de zona con hotspots clicables coloreados por estado (actual o simulado).
-import { COLOR, esc, fMm } from './formato.js';
+import { COLOR, esc, fMm, recurso } from './formato.js';
 
 /**
  * @param {string} zonaId 'BM' | 'BR' | 'CU'
@@ -20,5 +20,5 @@ export function esquemaHTML(zonaId, A, op = {}) {
     const tit = `${a.codigo} · ${a.punto.descripcion}\n${s ? 'Proyectado' : 'Último'}: ${fMm(L)} · ${estado}${a.niUltima && !s ? ' (N/I en la última inspección)' : ''}`;
     return `<a class="hot${pulso ? ' pulso' : ''}${a.pendientes.length ? ' sosp' : ''}" href="#/punto/${a.codigo}" style="left:${h.x * 100}%;top:${h.y * 100}%;background:${COLOR[estado]}" title="${esc(tit)}" aria-label="${esc(tit)}">${a.codigo.slice(3)}${op.etiquetas !== false ? `<span class="etq">${a.codigo} · ${L === null || L === undefined ? 'N/I' : L + ' mm'}</span>` : ''}</a>`;
   }).join('');
-  return `<div class="esquema"><img src="${cfg.esquemasDir}${z.esquema}" alt="Esquema ${esc(z.nombre)} con la ubicación de los puntos de inspección">${hots}</div>`;
+  return `<div class="esquema"><img src="${recurso(cfg.esquemasDir + z.esquema)}" alt="Esquema ${esc(z.nombre)} con la ubicación de los puntos de inspección">${hots}</div>`;
 }
