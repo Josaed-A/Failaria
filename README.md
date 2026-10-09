@@ -28,7 +28,8 @@ Cada vista muestra solo lo necesario para decidir. Las explicaciones (reglas, su
 |---|---|---|
 | **Flota** | ¿Qué equipo necesita atención primero? | Semáforo por equipo, lo más urgente, carga de Excel |
 | **Equipo** | ¿En qué estado está la pala, qué reparo primero y cuándo paro? | KPIs, 3D por estado, «¿qué pasa si…?», plan priorizado, próxima parada |
-| **Simulador** | ¿Cuándo y cómo fallaría cada pieza según la gravedad de su grieta? | Tiempo real con ley de Paris, mapa de daño tipo FEA, grietas a escala, FAD, **tirar de la estructura con el mouse** |
+| **Simulador** | ¿Cuándo y cómo fallaría cada pieza según la gravedad de su grieta? | Tiempo real con ley de Paris, mapa de daño tipo FEA, grietas a escala, FAD, **tirar de la estructura con el mouse**, reporte de esfuerzo y **causa de la falla** (horas de uso o fuerza excesiva) |
+| **Plan** | ¿Qué hago, cuándo y quién? | Tablero tipo Trello (Por planificar → Programada → En ejecución → Hecha), calendario, tareas sugeridas desde alertas y plan, pasos de verificación, CSV |
 | **Zona** | ¿Dónde están las grietas y cuál requiere acción? | Esquema con puntos clicables por estado, mini-tendencias, fotos |
 | **Punto** | ¿Cómo evoluciona esta grieta y cuándo cruza los umbrales? | Tendencia vs fecha/horas, bandas, ciclos de reparación, proyección, fotos |
 | **Alertas** | ¿Qué requiere acción hoy? | Umbral, proximidad, crecimiento rápido, N/I, dato sospechoso, fotos; «¿qué habría advertido la plataforma?» |
@@ -46,6 +47,12 @@ Cada vista muestra solo lo necesario para decidir. Las explicaciones (reglas, su
 - El color de la estructura (azul → rojo) muestra **dónde y cuánto se agrava** el daño.
 - **Mantener pulsado sobre el boom, brazo o cucharón y arrastrar** aplica un sobreesfuerzo: la cámara queda fija, aparece la flecha, los puntos cercanos crecen `(1+s)^m` veces más rápido y la zona queda con daño permanente. Un punto sano puede iniciar grieta.
 - Panel: pieza en riesgo por zona, tabla por gravedad y modo de falla, diagrama FAD y eventos.
+- **Reporte de esfuerzo y falla:** horas sobrecargado, sobreesfuerzo medio y máximo, dosis de daño y mm de crecimiento por tiempo frente a sobrecarga. Al fallar indica la causa: *por horas de uso*, *fatiga acelerada por sobrecargas* o *fractura por fuerza excesiva* (súbita, al cruzar el FAD).
+- Modelo 3D paramétrico de la EX3600: boom curvo y brazo ahusados, cucharón con concha curva, cilindros con vástago, tren de rodaje con zapatas.
+
+## Planificación de mantenimiento
+
+La vista **Plan** lleva a la práctica lo que la plataforma recomienda: «Sugerir tareas» crea tarjetas desde la próxima parada, el plan priorizado y las alertas (reparación con pasos de soldadura y NDT, inspección adicional, re-medición, fotos, inspección periódica). Tablero con arrastrar y soltar o flechas, calendario mensual, lista imprimible, responsable, horómetro previsto, pasos de verificación y exportación CSV. Las tareas vencidas se marcan y aparecen en el reporte.
 
 Uso detallado: [docs/SIMULADOR.md](docs/SIMULADOR.md). Fundamentos (supervisión de grietas, Paris, FAD, límites): [docs/MANTENIMIENTO_Y_FALLA.md](docs/MANTENIMIENTO_Y_FALLA.md).
 
@@ -74,16 +81,17 @@ index.html            shell (navegación por vistas)
 src/config.js         parámetros, hotspots, posiciones 3D, parámetros de falla
 src/datos.js          Excel → modelo normalizado, validación de calidad, exportación   (sin DOM)
 src/reglas.js         estado, ciclos, tasas, proyección, alertas, plan, KPIs          (sin DOM)
-src/falla.js          ley de Paris, longitud crítica, modos, FAD, simulación           (sin DOM)
+src/falla.js          ley de Paris, longitud crítica, modos, FAD, simulación, causa de falla (sin DOM)
+src/tareas.js         planificación: sugerencias, tablero, agenda, CSV                   (sin DOM)
 src/almacen.js        localStorage, respaldo JSON, fotos
 src/ia.js             prompt estructurado + API de Claude
-src/vistas/*.js       flota, equipo, simulador, zona, punto, registrar, historial, alertas, calidad, reporte, ia
+src/vistas/*.js       flota, equipo, simulador, planificacion, zona, punto, registrar, historial, alertas, calidad, reporte, ia
 src/ui/ayuda.js       icono ⓘ con información adicional
-src/ui/pala3d.js      pala 3D (geometría reutilizable)  ·  src/ui/simulador3d.js  mapa FEA + tirar con el mouse
+src/ui/pala3d.js      pala 3D paramétrica (vigas lofteadas)  ·  src/ui/simulador3d.js  mapa FEA + tirar con el mouse
 src/ui/grafico.js     Chart.js  ·  src/ui/esquema.js  esquemas con hotspots
 vendor/               SheetJS, Chart.js + annotation, Three.js, OrbitControls (versiones fijas)
 docs/                 README (índice), MANTENIMIENTO_Y_FALLA, SIMULADOR, USO_IA, historial/, referencia/, capturas/
-tests/verify.cjs      69 verificaciones de datos.js, reglas.js y falla.js
+tests/verify.cjs      86 verificaciones de datos.js, reglas.js, falla.js y tareas.js
 ```
 
 ## Verificación

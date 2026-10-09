@@ -14,7 +14,7 @@ export function render(root, app) {
   <div class="cabecera">
     <div><h1>Equipo ${esc(eq.id)} <span style="vertical-align:middle">${estadoHTML(A.estadoEquipo)}</span></h1>
       <p>Última inspección ${fFecha(A.ultimaInsp.fecha)} · ${fH(A.horasActuales)} · ${esc(A.ultimaInsp.inspector)} · ${A.inspecciones.length} inspecciones en el historial</p></div>
-    <div class="fila no-print"><a class="btn prim" href="#/registrar">+ Registrar inspección</a><a class="btn" href="#/reporte">Reporte</a></div>
+    <div class="fila no-print"><a class="btn prim" href="#/registrar">+ Registrar inspección</a><a class="btn" href="#/plan">Plan de tareas</a><a class="btn" href="#/reporte">Reporte</a></div>
   </div>
 
   <div class="kpis">

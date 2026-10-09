@@ -12,7 +12,14 @@ import { estadoDe } from './reglas.js';
 
 export const FALLA_DEFECTO = {
   m: 3, factorCritico: 1.6, aNucleacion: 5, sNucleacion: 0.3, tasaRefDefecto: 15,
-  LrNominal: 0.45, sMax: 2, radioInfluenciaM: 1.6, pxPorS: 220, velocidades: [10, 50, 200, 1000],
+  LrNominal: 0.35, sMax: 1.5, radioInfluenciaM: 1.6, pxPorS: 220, velocidades: [10, 50, 200, 1000],
+};
+
+/** Causas de falla que distingue el simulador. */
+export const CAUSAS = {
+  tiempo: { titulo: 'Fatiga por horas de uso', corto: 'Por tiempo', desc: 'La grieta creció ciclo a ciclo con la carga normal de operación hasta la longitud crítica. Se habría evitado reparando a tiempo.' },
+  sobrecarga: { titulo: 'Fractura por fuerza excesiva', corto: 'Por sobrecarga', desc: 'Un sobreesfuerzo superó lo que la sección agrietada podía resistir: el factor de intensidad llegó a la tenacidad o el ligamento colapsó. Falla súbita, sin aviso.' },
+  'fatiga-sobrecarga': { titulo: 'Fatiga acelerada por sobrecargas', corto: 'Tiempo + sobrecarga', desc: 'La grieta llegó a la longitud crítica, pero más de la mitad de su crecimiento ocurrió bajo sobreesfuerzo. Operar sobrecargado acortó la vida.' },
 };
 
 export const MODOS = {
@@ -101,15 +108,20 @@ export function modoFalla(M, a) {
 }
 
 /**
- * Diagrama de evaluación de falla (FAD) simplificado, envolvente circular Kr² + Lr² = 1
- * (más conservadora que la Opción 1 de BS 7910 / API 579 Nivel 2).
+ * Diagrama de evaluación de falla (FAD), curva Opción 1 de BS 7910 / API 579 Nivel 2:
+ *   f(Lr) = (1 − 0,14·Lr²)·(0,3 + 0,7·exp(−0,65·Lr⁶)),  Lr ≤ Lr,max (≈ 1,15 en acero estructural)
  *  Kr = K/K_IC ≈ (1+s)·√(a/a_c)      Lr = σ_ref/σ_y, crece al reducirse el ligamento.
+ * Falla si Kr ≥ f(Lr) (fractura) o Lr ≥ Lr,max (colapso plástico).
  */
+export const LR_MAX = 1.15;
+export const curvaFAD = (Lr) => (Lr >= LR_MAX ? 0 : (1 - 0.14 * Lr * Lr) * (0.3 + 0.7 * Math.exp(-0.65 * Math.pow(Lr, 6))));
 export function evaluarFAD(M, a, s = 0) {
-  const Kr = (1 + Math.max(0, s)) * Math.sqrt(Math.min(1.2, a / M.aCrit));
-  const Lr = Math.min(1.5, (M.LrNominal * (1 + Math.max(0, s))) / Math.max(0.2, 1 - 0.5 * Math.min(1, a / M.aCrit)));
-  const r = Math.hypot(Kr, Lr);
-  return { Kr, Lr, margen: 1 - r, falla: r >= 1, dominante: Kr >= Lr ? 'fractura' : 'colapso' };
+  const Kr = (1 + Math.max(0, s)) * Math.sqrt(Math.max(0, a) / M.aCrit);
+  const Lr = (M.LrNominal * (1 + Math.max(0, s))) / Math.max(0.2, 1 - 0.5 * Math.min(1, a / M.aCrit));
+  const f = curvaFAD(Lr);
+  const rK = f > 0 ? Kr / f : Infinity; const rL = Lr / LR_MAX;
+  const ratio = Math.max(rK, rL);
+  return { Kr, Lr, f, ratio, margen: 1 - ratio, falla: ratio >= 1, dominante: rK >= rL ? 'fractura' : 'colapso' };
 }
 
 /** Predicción estática (sin mouse) de cuándo y cómo fallaría cada punto y cada pieza. */
@@ -142,7 +154,11 @@ export function crearSimulacion(A, cfg) {
   const sim = { horas: 0, puntos: {}, eventos: [], cfg: f };
   const reiniciar = () => {
     sim.horas = 0; sim.eventos = [];
-    for (const M of Object.values(modelos)) sim.puntos[M.codigo] = { codigo: M.codigo, a: M.L0, a0: M.L0, estado: estadoDe(M.L0 > 0 ? M.L0 : (A.puntos[M.codigo].ultimoValido?.Lef ?? null), M.punto), modo: modoFalla(M, M.L0), sMax: 0, horasSobrecarga: 0, fallado: M.L0 >= M.aCrit, horaFalla: null, s: 0 };
+    for (const M of Object.values(modelos)) sim.puntos[M.codigo] = {
+      codigo: M.codigo, a: M.L0, a0: M.L0, estado: estadoDe(M.L0 > 0 ? M.L0 : (A.puntos[M.codigo].ultimoValido?.Lef ?? null), M.punto), modo: modoFalla(M, M.L0),
+      s: 0, sMax: 0, horasSobrecarga: 0, sumaS: 0, dosis: 0, crecTiempo: 0, crecSobrecarga: 0,
+      fallado: M.L0 >= M.aCrit, horaFalla: null, causa: null, detalleFalla: null, sFalla: null, LFalla: null,
+    };
   };
   reiniciar();
   /** Avanza dh horas; cargas = { codigo: s } con el sobreesfuerzo relativo en cada punto. */
@@ -152,16 +168,34 @@ export function crearSimulacion(A, cfg) {
     for (const M of Object.values(modelos)) {
       const x = sim.puntos[M.codigo]; const s = cargas[M.codigo] || 0;
       x.s = s;
-      if (s > 0.05) { x.horasSobrecarga += dh; x.sMax = Math.max(x.sMax, s); }
       if (x.fallado) continue;
+      if (s > 0.05) { x.horasSobrecarga += dh; x.sMax = Math.max(x.sMax, s); x.sumaS += s * dh; x.dosis += (factorCarga(s, M.m) - 1) * dh; }
       const antes = x.a;
+      const sinCarga = avanzar(M, x.a, dh, 0);
       x.a = avanzar(M, x.a, dh, s);
+      x.crecTiempo += Math.max(0, sinCarga - antes);
+      x.crecSobrecarga += Math.max(0, x.a - sinCarga);
       const e0 = estadoDe(antes > 0 ? antes : null, M.punto); const e1 = estadoDe(x.a > 0 ? x.a : null, M.punto);
       x.estado = x.a > 0 ? e1 : x.estado;
       if (x.a > 0 && e1 !== e0 && antes > 0) sim.eventos.push({ horas: sim.horas, codigo: M.codigo, tipo: 'estado', de: e0, a: e1, L: x.a });
-      if (antes < M.aNucleacion && x.a >= M.aNucleacion) sim.eventos.push({ horas: sim.horas, codigo: M.codigo, tipo: 'inicio', L: x.a });
+      if (antes < M.aNucleacion && x.a >= M.aNucleacion) sim.eventos.push({ horas: sim.horas, codigo: M.codigo, tipo: 'inicio', L: x.a, s });
       x.modo = modoFalla(M, x.a);
-      if (x.a >= M.aCrit && !x.fallado) { x.fallado = true; x.horaFalla = sim.horas; sim.eventos.push({ horas: sim.horas, codigo: M.codigo, tipo: 'falla', L: x.a }); }
+      // Falla súbita: con el sobreesfuerzo aplicado la grieta actual cruza el FAD aunque no llegue a a_c.
+      const fad = evaluarFAD(M, x.a, s);
+      if (!x.fallado && x.a >= M.aNucleacion && s > 0.05 && fad.falla) {
+        x.fallado = true; x.horaFalla = sim.horas; x.causa = 'sobrecarga'; x.sFalla = s; x.LFalla = x.a;
+        x.detalleFalla = `Con +${Math.round(s * 100)} % de esfuerzo y una grieta de ${Math.round(x.a)} mm (a_c ${M.aCrit} mm) ${fad.dominante === 'fractura' ? `el factor de intensidad superó la tenacidad (Kr = ${fad.Kr.toFixed(2)})` : `el ligamento no resistió la carga (Lr = ${fad.Lr.toFixed(2)})`}: fractura súbita.`;
+        x.modo = 'fractura';
+        sim.eventos.push({ horas: sim.horas, codigo: M.codigo, tipo: 'falla', causa: x.causa, L: x.a, s });
+      } else if (!x.fallado && x.a >= M.aCrit) {
+        x.fallado = true; x.horaFalla = sim.horas; x.LFalla = x.a;
+        const total = Math.max(1e-9, x.crecTiempo + x.crecSobrecarga); const frac = x.crecSobrecarga / total;
+        x.causa = frac > 0.5 ? 'fatiga-sobrecarga' : 'tiempo';
+        x.detalleFalla = frac > 0.5
+          ? `Llegó a a_c (${M.aCrit} mm) en +${Math.round(sim.horas)} h: el ${Math.round(frac * 100)} % del crecimiento ocurrió bajo sobreesfuerzo (máx. +${Math.round(x.sMax * 100)} %, ${Math.round(x.horasSobrecarga)} h sobrecargado).`
+          : `Llegó a a_c (${M.aCrit} mm) tras +${Math.round(sim.horas)} h de operación${x.crecSobrecarga > 0 ? `; solo el ${Math.round(frac * 100)} % del crecimiento se debió a sobrecargas` : ' sin sobrecargas'}.`;
+        sim.eventos.push({ horas: sim.horas, codigo: M.codigo, tipo: 'falla', causa: x.causa, L: x.a });
+      }
     }
   };
   /** Estado para la vista: por punto, severidad, modo, FAD y horas restantes sin sobrecarga. */
@@ -170,10 +204,23 @@ export function crearSimulacion(A, cfg) {
     for (const M of Object.values(modelos)) {
       const x = sim.puntos[M.codigo];
       const hC = x.fallado ? 0 : horasHasta(M, x.a, M.aCrit);
-      out[M.codigo] = { ...x, L: Math.round(x.a), aCrit: M.aCrit, severidad: severidad(M, x.a), tasa: tasaEn(M, x.a, x.s), horasCritico: hC, horasDanger: x.a >= M.punto.danger ? 0 : horasHasta(M, x.a, M.punto.danger), fad: evaluarFAD(M, x.a, x.s), modoInfo: MODOS[x.modo] };
+      const total = x.crecTiempo + x.crecSobrecarga;
+      out[M.codigo] = {
+        ...x, L: Math.round(x.a), aCrit: M.aCrit, severidad: severidad(M, x.a), tasa: tasaEn(M, x.a, x.s), horasCritico: hC,
+        horasDanger: x.a >= M.punto.danger ? 0 : horasHasta(M, x.a, M.punto.danger), fad: evaluarFAD(M, x.a, x.s), modoInfo: MODOS[x.modo],
+        esfuerzo: { horas: x.horasSobrecarga, sMedio: x.horasSobrecarga > 0 ? x.sumaS / x.horasSobrecarga : 0, sMax: x.sMax, dosis: x.dosis, crecTiempo: x.crecTiempo, crecSobrecarga: x.crecSobrecarga, fraccionSobrecarga: total > 0 ? x.crecSobrecarga / total : 0 },
+        causaInfo: x.causa ? CAUSAS[x.causa] : null,
+      };
     }
     return out;
   };
+  /** Reporte de esfuerzo y falla por punto (filas para tabla/CSV). */
+  sim.reporte = () => Object.values(sim.estado()).map((x) => ({
+    codigo: x.codigo, L0: Math.round(x.a0), L: x.L, aCrit: x.aCrit, severidad: x.severidad, modo: MODOS[x.modo].corto,
+    horasSobrecarga: Math.round(x.esfuerzo.horas), sMedio: x.esfuerzo.sMedio, sMax: x.esfuerzo.sMax, dosis: Math.round(x.esfuerzo.dosis),
+    crecTiempo: Math.round(x.esfuerzo.crecTiempo), crecSobrecarga: Math.round(x.esfuerzo.crecSobrecarga), fraccionSobrecarga: x.esfuerzo.fraccionSobrecarga,
+    fallado: x.fallado, horaFalla: x.horaFalla === null ? null : Math.round(x.horaFalla), causa: x.causa ? CAUSAS[x.causa].corto : '', detalleFalla: x.detalleFalla || '',
+  }));
   sim.reiniciar = reiniciar;
   sim.modelos = modelos;
   sim.fecha = () => A.fechaDeHoras(A.horasActuales + sim.horas);

@@ -4,7 +4,8 @@ Punto de entrada: el [README](../README.md) de la raíz (qué es, cómo abrirla,
 
 **Vigentes**
 - [MANTENIMIENTO_Y_FALLA.md](MANTENIMIENTO_Y_FALLA.md): cómo se supervisa una grieta, ley de Paris, FAD, modos de falla y límites del modelo.
-- [SIMULADOR.md](SIMULADOR.md): uso del simulador de falla (tiempo real, mapa FEA, tirar con el mouse).
+- [SIMULADOR.md](SIMULADOR.md): uso del simulador de falla (tiempo real, mapa FEA, tirar con el mouse, reporte de esfuerzo y causa de falla).
+- Planificación de mantenimiento (vista Plan): sección 5 de MANTENIMIENTO_Y_FALLA.md.
 - [USO_IA.md](USO_IA.md): uso de IA en el desarrollo y dentro de la plataforma.
 - [referencia/](referencia/): enunciado del taller y formato de inspección Word (plantilla del formulario y del reporte).
 - [capturas/](capturas/): imágenes del README.

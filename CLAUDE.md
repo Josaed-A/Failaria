@@ -22,11 +22,12 @@ Curso: Taller en Énfasis II — Gestión de Mantenimiento (Grupo 5). Idioma de 
 index.html            shell de la app (navegación por vistas)
 src/datos.js          lectura Excel → modelo normalizado; validación de calidad
 src/reglas.js         estado (Normal/Alerta/Crítico/N/I), tasas, proyección, alertas  ← lógica PURA, sin DOM
-src/falla.js          ley de Paris, a_crítica, modos de falla, FAD, simulación      ← lógica PURA, sin DOM
+src/falla.js          ley de Paris, a_crítica, modos de falla, FAD, simulación, causa de falla y reporte de esfuerzo ← PURA
+src/tareas.js         planificación: sugerencias desde el análisis, columnas, mover, agenda, CSV ← PURA
 src/almacen.js        localStorage, merge de inspecciones nuevas, export/import
-src/vistas/*.js       flota, equipo, simulador, zona, punto, registrar, historial, alertas, calidad, reporte, ia
+src/vistas/*.js       flota, equipo, simulador, planificacion (tablero/calendario), zona, punto, registrar, historial, alertas, calidad, reporte, ia
 src/ui/ayuda.js       icono ⓘ: info(html) devuelve el botón; el texto didáctico va aquí, no en la vista
-src/ui/pala3d.js      geometría de la pala (construirPala, crearEsferas, escenaBase) reutilizada por simulador3d.js
+src/ui/pala3d.js      pala paramétrica (vigas lofteadas: puntoEnPieza/PERFIL/posicionPunto; construirPala, crearEsferas, escenaBase)
 src/ui/simulador3d.js mapa de daño FEA por vértice, grietas a escala, tirar con el mouse
 assets/esquemas|fotos imágenes referenciadas por la columna "Imagen" del Excel
 data/                 Excel original (fuente de verdad; NO editarlo)
@@ -34,7 +35,7 @@ tests/verify.cjs      verificación de reglas.js con node (sin dependencias)
 ```
 
 ## Reglas de trabajo
-- `reglas.js`, `datos.js` y `falla.js` no tocan el DOM: así se prueban con `node tests/verify.cjs`. Correr tests tras cada cambio en lógica.
+- `reglas.js`, `datos.js`, `falla.js` y `tareas.js` no tocan el DOM: así se prueban con `node tests/verify.cjs`. Correr tests tras cada cambio en lógica.
 - **Poco texto en pantalla**: títulos y datos a la vista; explicaciones, reglas y supuestos dentro de `info('…')` (ⓘ). No volver a poner párrafos explicativos en las vistas.
 - Cuidado con el nombre `info`: no declarar variables locales con ese nombre en las vistas (sombrea la importación).
 - Prueba visual: `python -m http.server 8765` + Playwright (chromium headless con `--use-angle=swiftshader`) recorre las rutas y comprueba 0 errores de consola.

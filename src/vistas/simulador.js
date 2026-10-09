@@ -1,6 +1,7 @@
 // Simulador de falla: ¿cuándo y cómo fallaría cada pieza según la gravedad de su grieta?
 // Tiempo real (ley de Paris), mapa de daño tipo FEA y sobreesfuerzo aplicado con el mouse.
-import { crearSimulacion, cargasPorDistancia, MODOS, predecir } from '../falla.js';
+import { crearSimulacion, cargasPorDistancia, curvaFAD, CAUSAS, LR_MAX, MODOS, predecir } from '../falla.js';
+import { descargar } from '../almacen.js';
 import { COLOR, esc, estadoHTML, fFecha, fH, fNum } from '../ui/formato.js';
 import { info } from '../ui/ayuda.js';
 
@@ -16,7 +17,7 @@ export function render(root, app) {
 
   root.innerHTML = `
   <div class="cabecera">
-    <div><h1>Simulador de falla ${info(`<p><b>Qué hace.</b> Hace avanzar las 12 grietas en el tiempo con la <b>ley de Paris</b> (la tasa crece con a<sup>m/2</sup>, m = ${f.m}) calibrada con la tasa medida de cada punto, hasta la <b>longitud crítica</b> a<sub>c</sub> = ${f.factorCritico} × Danger, donde la pieza se fractura.</p><p><b>Mapa FEA.</b> El color de la estructura muestra el daño: azul sano → rojo crítico. Crece alrededor de cada grieta según su gravedad y donde se aplicó sobreesfuerzo.</p><p><b>Tirar con el mouse.</b> Mantenga pulsado sobre el boom, brazo o cucharón y arrastre: aplica un sobreesfuerzo s (flecha roja) que multiplica la tasa de crecimiento por (1+s)<sup>${f.m}</sup> en los puntos cercanos y deja daño permanente. La estructura queda fija mientras tira; suelte para volver a orbitar.</p><p>Fundamentos y límites: <i>docs/MANTENIMIENTO_Y_FALLA.md</i>.</p>`)}</h1></div>
+    <div><h1>Simulador de falla ${info(`<p><b>Qué hace.</b> Hace avanzar las 12 grietas en el tiempo con la <b>ley de Paris</b> (la tasa crece con a<sup>m/2</sup>, m = ${f.m}) calibrada con la tasa medida de cada punto, hasta la <b>longitud crítica</b> a<sub>c</sub> = ${f.factorCritico} × Danger, donde la pieza se fractura.</p><p><b>Mapa FEA.</b> El color de la estructura muestra el daño: azul sano → rojo crítico. Crece alrededor de cada grieta según su gravedad y donde se aplicó sobreesfuerzo.</p><p><b>Tirar con el mouse.</b> Mantenga pulsado sobre el boom, brazo o cucharón y arrastre: aplica un sobreesfuerzo s (flecha roja) que multiplica la tasa de crecimiento por (1+s)<sup>${f.m}</sup> en los puntos cercanos y deja daño permanente. La estructura queda fija mientras tira; suelte para volver a orbitar.</p><p><b>Causa de la falla.</b> Si una grieta llega a a<sub>c</sub> con carga normal la falla es <i>por horas de uso</i>; si un tirón hace cruzar el FAD, es <i>por fuerza excesiva</i> (súbita). El reporte inferior detalla el esfuerzo recibido por cada punto.</p><p>Fundamentos y límites: <i>docs/MANTENIMIENTO_Y_FALLA.md</i>.</p>`)}</h1></div>
     <div class="fila no-print"><a class="btn" href="#/equipo/${esc(A.modelo.equipo.id)}">Equipo</a><a class="btn" href="#/alertas">Alertas</a></div>
   </div>
 
@@ -44,10 +45,16 @@ export function render(root, app) {
       </div>
       <div class="espacio"></div>
       <div class="rejilla c2">
-        <div class="panel" style="padding:10px"><h3 style="margin:0 0 4px">FAD ${info('<p><b>Diagrama de evaluación de falla</b> (BS 7910 / API 579 simplificado). Eje vertical K<sub>r</sub> = K/K<sub>IC</sub> (fractura frágil, crece con √a y con el sobreesfuerzo). Eje horizontal L<sub>r</sub> = σ/σ<sub>y</sub> (colapso plástico del ligamento).</p><p>Dentro de la curva la grieta es tolerable; al cruzarla la pieza falla por el mecanismo del eje dominante.</p>')}</h3><svg class="fad" id="fad" viewBox="0 0 220 190"></svg></div>
+        <div class="panel" style="padding:10px"><h3 style="margin:0 0 4px">FAD ${info('<p><b>Diagrama de evaluación de falla</b>, curva Opción 1 de BS 7910 / API 579. Eje vertical K<sub>r</sub> = K/K<sub>IC</sub> (fractura frágil, crece con √a y con el sobreesfuerzo). Eje horizontal L<sub>r</sub> = σ<sub>ref</sub>/σ<sub>y</sub> (colapso plástico del ligamento), con corte en L<sub>r,max</sub> = ${LR_MAX}.</p><p>Dentro de la curva la grieta es tolerable; al cruzarla la pieza falla por el mecanismo dominante. Al tirar con el mouse los puntos se desplazan en diagonal hacia la curva.</p>')}</h3><svg class="fad" id="fad" viewBox="0 0 220 190"></svg></div>
         <div class="panel" style="padding:10px"><h3 style="margin:0 0 4px">Eventos</h3><div class="sim-eventos" id="ev"><span class="tenue">Pulse ▶ o tire de la estructura.</span></div></div>
       </div>
     </div>
+  </div>
+  <div class="espacio"></div>
+  <div class="panel" style="padding:10px">
+    <div class="fila entre"><h2 style="margin:0">Reporte de esfuerzo y falla ${info(`<p>Qué esfuerzo recibió cada punto durante la simulación y, si falló, <b>por qué</b>:</p>${Object.values(CAUSAS).map((c) => `<p><b>${c.titulo}:</b> ${c.desc}</p>`).join('')}<p><b>Horas sobrecargado:</b> tiempo simulado con sobreesfuerzo. <b>s medio / máx:</b> sobreesfuerzo relativo (Δσ extra / Δσ nominal). <b>Dosis:</b> horas equivalentes de daño adicional, ∫[(1+s)<sup>m</sup> − 1]·dh. <b>Δa tiempo / Δa sobrecarga:</b> mm de crecimiento con carga normal y mm adicionales por sobreesfuerzo.</p>`)}</h2>
+      <button class="btn chico no-print" id="bCsv">Descargar CSV</button></div>
+    <div class="tabla-wrap" style="margin-top:6px"><table class="sim-tabla"><thead><tr><th>Punto</th><th class="n">L inicial → actual</th><th class="n">h sobrecargado</th><th class="n">s medio</th><th class="n">s máx</th><th class="n">Dosis (h eq.)</th><th class="n">Δa tiempo</th><th class="n">Δa sobrecarga</th><th>Falla</th></tr></thead><tbody id="tbRep"></tbody></table></div>
   </div>`;
 
   const $ = (id) => root.querySelector('#' + id);
@@ -111,24 +118,28 @@ export function render(root, app) {
       ${sel ? `<div class="aviso ${sel.fallado || sel.modo === 'acelerada' ? 'rojo' : sel.modo === 'propagacion' ? '' : 'azul'}" style="margin:10px 0 0;font-size:.86rem">
         <b>${seleccion}</b> · ${esc(A.puntos[seleccion].punto.descripcion)}<br>
         L ${fNum(sel.a0)} → <b>${fNum(sel.L)} mm</b> (a<sub>c</sub> ${fNum(sel.aCrit)} mm) · tasa ${fNum(sel.tasa)} mm/1000 h${sel.s > 0.05 ? ` <b style="color:#ff8080">con sobreesfuerzo +${fNum(sel.s * 100)} %</b>` : ''}<br>
-        <b>${MODOS[sel.modo].titulo}.</b> ${MODOS[sel.modo].desc}<br>
-        ${sel.fallado ? `Falló a +${fNum(Math.round(sel.horaFalla))} h simuladas.` : Number.isFinite(sel.horasCritico) ? `Falla en ≈ ${fH(Math.round(sel.horasCritico))} (${fFecha(A.fechaDeHoras(A.horasActuales + sim.horas + sel.horasCritico))}) por ${sel.fad.dominante === 'fractura' ? 'fractura inestable (K<sub>r</sub> domina)' : 'colapso del ligamento (L<sub>r</sub> domina)'}; la plataforma proyectaba Danger en ${fNum(p0.horasDangerLineal)} h con tasa constante, Paris lo adelanta a ${fNum(Math.round(p0.horasDanger))} h.` : 'Sin crecimiento previsto mientras no haya sobrecarga.'}
-        ${sel.horasSobrecarga > 0 ? `<br>Horas bajo sobreesfuerzo: ${fNum(Math.round(sel.horasSobrecarga))} (máx. +${fNum(sel.sMax * 100)} %).` : ''}
-        <br><a href="#/punto/${seleccion}">Ver historial del punto →</a></div>` : '<p class="tenue" style="margin:10px 0 0;font-size:.85rem">Clic en una esfera o en una fila para ver el detalle del punto.</p>'}`;
+        ${sel.fallado && sel.causaInfo ? `<b style="color:#ff8080">FALLÓ a +${fNum(Math.round(sel.horaFalla))} h · ${sel.causaInfo.titulo}.</b> ${sel.causaInfo.desc}` : `<b>${MODOS[sel.modo].titulo}.</b> ${MODOS[sel.modo].desc}`}<br>
+        ${sel.fallado ? '' : Number.isFinite(sel.horasCritico) ? `Falla en ≈ ${fH(Math.round(sel.horasCritico))} (${fFecha(A.fechaDeHoras(A.horasActuales + sim.horas + sel.horasCritico))}) por ${sel.fad.dominante === 'fractura' ? 'fractura inestable (K<sub>r</sub> domina)' : 'colapso del ligamento (L<sub>r</sub> domina)'}; la plataforma proyectaba Danger en ${fNum(p0.horasDangerLineal)} h con tasa constante, Paris lo adelanta a ${fNum(Math.round(p0.horasDanger))} h.` : 'Sin crecimiento previsto mientras no haya sobrecarga.'}
+        ${sel.fallado && sel.detalleFalla ? `<div style="margin-top:6px;padding:6px 8px;border-radius:6px;background:rgba(214,69,69,.18)">${esc(sel.detalleFalla)}</div>` : ''}
+        <div style="margin-top:6px;font-size:.82rem"><b>Esfuerzo al que se sometió:</b> ${sel.esfuerzo.horas > 0 ? `${fNum(Math.round(sel.esfuerzo.horas))} h sobrecargado · s medio +${fNum(sel.esfuerzo.sMedio * 100)} % · máx +${fNum(sel.esfuerzo.sMax * 100)} % · dosis ${fNum(Math.round(sel.esfuerzo.dosis))} h eq. · crecimiento ${fNum(Math.round(sel.esfuerzo.crecTiempo))} mm por tiempo + ${fNum(Math.round(sel.esfuerzo.crecSobrecarga))} mm por sobrecarga (${fNum(sel.esfuerzo.fraccionSobrecarga * 100)} %)` : `solo carga normal de operación · crecimiento ${fNum(Math.round(sel.esfuerzo.crecTiempo))} mm`}</div>
+        <a href="#/punto/${seleccion}">Ver historial del punto →</a></div>` : '<p class="tenue" style="margin:10px 0 0;font-size:.85rem">Clic en una esfera o en una fila para ver el detalle del punto.</p>'}`;
 
     // FAD
     const X = (Lr) => 28 + (Lr / 1.3) * 180, Y = (Kr) => 165 - (Kr / 1.3) * 150;
-    const arco = []; for (let i = 0; i <= 40; i++) { const t = (Math.PI / 2) * (i / 40); arco.push(`${X(Math.cos(t)).toFixed(1)},${Y(Math.sin(t)).toFixed(1)}`); }
-    $('fad').innerHTML = `<path d="M${X(0)},${Y(0)} L${X(0)},${Y(1)} L${arco.join(' L')} L${X(1)},${Y(0)} Z" fill="rgba(46,158,91,.14)" stroke="#5ccf8c" stroke-width="1.2"/>
+    const arco = []; for (let i = 0; i <= 46; i++) { const Lr = LR_MAX * (i / 46); arco.push(`${X(Lr).toFixed(1)},${Y(curvaFAD(Lr)).toFixed(1)}`); }
+    $('fad').innerHTML = `<path d="M${X(0)},${Y(0)} L${arco.join(' L')} L${X(LR_MAX)},${Y(0)} Z" fill="rgba(46,158,91,.14)" stroke="#5ccf8c" stroke-width="1.2"/>
       <line x1="${X(0)}" y1="${Y(0)}" x2="${X(1.3)}" y2="${Y(0)}" stroke="#6f7c92"/><line x1="${X(0)}" y1="${Y(0)}" x2="${X(0)}" y2="${Y(1.3)}" stroke="#6f7c92"/>
       <text x="${X(1.3) - 2}" y="${Y(0) + 14}" fill="#a9b4c6" font-size="9" text-anchor="end">Lr = σ/σy (colapso)</text><text x="${X(0) - 4}" y="${Y(1.3) + 4}" fill="#a9b4c6" font-size="9" transform="rotate(-90 ${X(0) - 4},${Y(1.3) + 4})" text-anchor="end">Kr = K/KIC (fractura)</text>
-      <text x="${X(1)}" y="${Y(0) + 10}" fill="#6f7c92" font-size="8" text-anchor="middle">1</text><text x="${X(0) - 6}" y="${Y(1) + 3}" fill="#6f7c92" font-size="8" text-anchor="end">1</text>
+      <text x="${X(LR_MAX)}" y="${Y(0) + 10}" fill="#6f7c92" font-size="8" text-anchor="middle">Lr,max</text><text x="${X(0) - 6}" y="${Y(1) + 3}" fill="#6f7c92" font-size="8" text-anchor="end">1</text>
       <text x="${X(0.3)}" y="${Y(0.35)}" fill="#5ccf8c" font-size="9">tolerable</text><text x="${X(0.85)}" y="${Y(1.1)}" fill="#ff8080" font-size="9">falla</text>
       ${lista.map((x) => `<circle cx="${X(Math.min(1.3, x.fad.Lr)).toFixed(1)}" cy="${Y(Math.min(1.3, x.fad.Kr)).toFixed(1)}" r="${seleccion === x.codigo ? 5 : 3.2}" fill="${x.fallado ? '#000' : COLOR[x.estado]}" stroke="${seleccion === x.codigo ? '#fff' : x.fallado ? '#f22' : '#0c1320'}" stroke-width="1.2"><title>${x.codigo}: Kr ${x.fad.Kr.toFixed(2)} · Lr ${x.fad.Lr.toFixed(2)}</title></circle>`).join('')}
       ${sel ? `<text x="${X(Math.min(1.3, sel.fad.Lr)) + 7}" y="${Y(Math.min(1.3, sel.fad.Kr)) + 3}" fill="#fff" font-size="9" font-weight="700">${seleccion}</text>` : ''}`;
 
+    // Reporte de esfuerzo
+    $('tbRep').innerHTML = sim.reporte().sort((a, b) => (a.fallado === b.fallado ? b.dosis - a.dosis || b.severidad - a.severidad : a.fallado ? -1 : 1)).map((r) => `<tr class="${r.fallado ? 'fallado' : ''}"><td><b>${r.codigo}</b></td><td class="n">${fNum(r.L0)} → ${fNum(r.L)} mm</td><td class="n">${fNum(r.horasSobrecarga)}</td><td class="n">${r.horasSobrecarga ? '+' + fNum(r.sMedio * 100) + ' %' : '—'}</td><td class="n">${r.sMax ? '+' + fNum(r.sMax * 100) + ' %' : '—'}</td><td class="n">${fNum(r.dosis)}</td><td class="n">${fNum(r.crecTiempo)} mm</td><td class="n">${r.crecSobrecarga ? `${fNum(r.crecSobrecarga)} mm (${fNum(r.fraccionSobrecarga * 100)} %)` : '—'}</td><td>${r.fallado ? `<b style="color:#ff8080">+${fNum(r.horaFalla)} h · ${esc(r.causa)}</b><br><small>${esc(r.detalleFalla)}</small>` : '<span class="tenue">—</span>'}</td></tr>`).join('');
+
     // Eventos
-    if (sim.eventos.length) $('ev').innerHTML = [...sim.eventos].reverse().slice(0, 40).map((e) => `<div><span class="tenue num">+${fNum(Math.round(e.horas))} h</span> · <b>${e.codigo}</b> ${e.tipo === 'falla' ? `<span class="modo-chip modo-fractura">FALLA</span> ${fNum(Math.round(e.L))} mm` : e.tipo === 'inicio' ? 'grieta iniciada por sobrecarga' : `${e.de} → ${estadoHTML(e.a)} (${fNum(Math.round(e.L))} mm)`}</div>`).join('');
+    if (sim.eventos.length) $('ev').innerHTML = [...sim.eventos].reverse().slice(0, 40).map((e) => `<div><span class="tenue num">+${fNum(Math.round(e.horas))} h</span> · <b>${e.codigo}</b> ${e.tipo === 'falla' ? `<span class="modo-chip modo-fractura">FALLA</span> ${CAUSAS[e.causa]?.corto ?? ''} · ${fNum(Math.round(e.L))} mm${e.s ? ` con +${fNum(e.s * 100)} %` : ''}` : e.tipo === 'inicio' ? `grieta iniciada por sobrecarga (+${fNum((e.s || 0) * 100)} %)` : `${e.de} → ${estadoHTML(e.a)} (${fNum(Math.round(e.L))} mm)`}</div>`).join('');
   }
 
   // --- Controles ---
@@ -138,6 +149,12 @@ export function render(root, app) {
   $('bReset').addEventListener('click', () => { sim.reiniciar(); est = sim.estado(); visor?.limpiarDano(); visor?.actualizar(est); $('ev').innerHTML = '<span class="tenue">Simulación reiniciada.</span>'; pintarPanel(true); setPlay(false); });
   $('vel').addEventListener('change', (e) => { velocidadSel = +e.target.value; });
   $('chkTirar').addEventListener('change', (e) => visor?.tirar(e.target.checked));
+  $('bCsv').addEventListener('click', () => {
+    const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const cols = ['codigo', 'L0', 'L', 'aCrit', 'modo', 'horasSobrecarga', 'sMedio', 'sMax', 'dosis', 'crecTiempo', 'crecSobrecarga', 'fraccionSobrecarga', 'fallado', 'horaFalla', 'causa', 'detalleFalla'];
+    const csv = [['Simulación', `+${Math.round(sim.horas)} h`, sim.fecha()].map(q).join(';'), cols.map(q).join(';'), ...sim.reporte().map((r) => cols.map((c) => q(typeof r[c] === 'number' ? Math.round(r[c] * 1000) / 1000 : r[c])).join(';'))].join('\r\n');
+    descargar(`EX3600_reporte_esfuerzo_+${Math.round(sim.horas)}h.csv`, '\ufeff' + csv, 'text/csv;charset=utf-8');
+  });
   document.addEventListener('keydown', teclas);
   function teclas(e) { if (e.target.matches('input,select,textarea')) return; if (e.code === 'Space') { e.preventDefault(); setPlay(!corriendo); } }
   app.alLimpiar(() => { vivo = false; visor?.destruir(); document.removeEventListener('keydown', teclas); });

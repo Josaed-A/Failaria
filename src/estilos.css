@@ -260,3 +260,39 @@ h1 button.info, h2 button.info { width: 20px; height: 20px; font-size: 12px; }
 .modo-fractura { background: var(--critico); color: #fff; animation: parpadeo 1s infinite; }
 @keyframes parpadeo { 50% { opacity: .55; } }
 @media (max-width: 1000px) { .sim-layout { grid-template-columns: minmax(0, 1fr); } .sim-3d { height: 420px; } }
+
+/* Planificación: tablero, calendario, diálogo */
+.tablero { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.columna { background: var(--panel); border: 1px solid var(--borde); border-radius: var(--radio); min-height: 240px; display: flex; flex-direction: column; }
+.columna.sobre { border-color: var(--acento); box-shadow: inset 0 0 0 2px rgba(74,163,223,.35); }
+.col-cab { display: flex; align-items: center; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--borde); font-size: .9rem; }
+.col-cab .chip { margin-left: auto; }
+.col-cuerpo { padding: 8px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.tarea { background: var(--panel2); border: 1px solid var(--borde); border-left: 4px solid var(--acento); border-radius: 8px; padding: 8px 10px; cursor: grab; font-size: .86rem; }
+.tarea:active { cursor: grabbing; }
+.tarea.arrastrando { opacity: .5; }
+.tarea.vencida { background: rgba(214,69,69,.10); }
+.tarea.hecha { opacity: .72; }
+.tarea.hecha .titulo { text-decoration: line-through; }
+.tarea .meta { color: var(--texto2); font-size: .78rem; margin-top: 3px; }
+.tarea .meta .rojo { color: #ff8080; font-weight: 600; }
+.tarea .acciones { margin-top: 6px; gap: 4px; justify-content: space-between; }
+tr.fila-vencida td { background: rgba(214,69,69,.08); }
+.cal-cab { display: grid; grid-template-columns: repeat(7, 1fr); font-size: .75rem; color: var(--texto2); text-align: center; margin-bottom: 4px; }
+.calendario { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.dia { min-height: 86px; background: var(--panel2); border: 1px solid var(--borde); border-radius: 6px; padding: 4px; font-size: .74rem; cursor: pointer; }
+.dia.vacio { background: transparent; border-color: transparent; cursor: default; }
+.dia.hoy { border: 2px solid var(--acento); }
+.dia.insp { background: rgba(74,163,223,.08); }
+.dia .n { font-weight: 700; color: var(--texto2); margin-bottom: 3px; }
+.dia .ev { border-left: 3px solid var(--acento); background: rgba(255,255,255,.05); border-radius: 3px; padding: 1px 4px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.dia .ev.vencida { background: rgba(214,69,69,.2); } .dia .ev.hecha { opacity: .55; text-decoration: line-through; }
+.dlg { background: var(--panel); color: var(--texto); border: 1px solid #35507a; border-radius: 12px; padding: 18px; width: min(760px, 94vw); box-shadow: 0 12px 40px rgba(0,0,0,.6); }
+.dlg::backdrop { background: rgba(0,0,0,.6); }
+.dlg-form { display: flex; flex-direction: column; gap: 10px; }
+.dlg-form input, .dlg-form select, .dlg-form textarea { width: 100%; }
+.checklist { display: flex; flex-direction: column; gap: 3px; font-size: .86rem; color: var(--texto); margin: 4px 0; }
+.checklist input { width: auto; }
+@media (max-width: 1000px) { .tablero { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .tablero { grid-template-columns: minmax(0, 1fr); } .dia { min-height: 56px; } .dia .ev { display: none; } }
+@media print { .tablero { grid-template-columns: repeat(2, 1fr); } .tarea { break-inside: avoid; } }

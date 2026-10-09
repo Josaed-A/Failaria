@@ -84,8 +84,8 @@ export const CONFIG = {
     aNucleacion: 5,            // mm con los que «nace» una grieta en un punto sano bajo sobrecarga
     sNucleacion: 0.3,          // sobreesfuerzo relativo mínimo (Δσ extra / Δσ nominal) para iniciarla
     tasaRefDefecto: 15,        // mm/1000 h a L = Caution/2 cuando el punto no tiene historia de crecimiento
-    LrNominal: 0.45,           // relación de carga nominal σ_ref/σ_y del FAD simplificado
-    sMax: 2,                   // sobreesfuerzo máximo que aplica el mouse
+    LrNominal: 0.35,           // relación de carga nominal σ_ref/σ_y del FAD simplificado
+    sMax: 1.5,                 // sobreesfuerzo máximo que aplica el mouse (+150 %)
     radioInfluenciaM: 1.6,     // m: alcance del esfuerzo del mouse sobre la estructura
     pxPorS: 220,               // píxeles de arrastre por unidad de sobreesfuerzo
     velocidades: [10, 50, 200, 1000], // horas simuladas por segundo real

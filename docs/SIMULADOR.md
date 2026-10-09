@@ -22,4 +22,16 @@ Responde **cuándo y cómo** fallaría cada pieza según la gravedad de su griet
 * **FAD:** posición de los 12 puntos frente a la curva de falla.
 * **Eventos:** cambios de estado, inicios de grieta por sobrecarga y fallas, con la hora simulada.
 
+## Reporte de esfuerzo y causa de falla
+
+Para cada punto el simulador registra el esfuerzo recibido: horas sobrecargado, sobreesfuerzo medio y máximo, **dosis** (horas equivalentes de daño adicional, ∫[(1+s)^m − 1]·dh) y cuántos mm creció la grieta con carga normal frente a cuántos por sobrecarga. El panel «Reporte de esfuerzo y falla» lo muestra en tabla y lo exporta a CSV.
+
+Cuando un punto falla, el reporte dice **por qué**:
+
+| Causa | Cuándo la declara | Qué significa |
+|---|---|---|
+| **Fatiga por horas de uso** | La grieta llegó a `a_c` y menos de la mitad de su crecimiento ocurrió bajo sobreesfuerzo | Falla «por tiempo»: se evitaba reparando a tiempo |
+| **Fatiga acelerada por sobrecargas** | Llegó a `a_c`, pero más de la mitad del crecimiento ocurrió bajo sobreesfuerzo | Operar sobrecargado acortó la vida |
+| **Fractura por fuerza excesiva** | Un tirón hace que la grieta actual cruce el FAD (K_r o L_r) aunque esté lejos de `a_c` | Falla súbita, sin aviso; el detalle indica si dominó la fractura (K_r) o el colapso del ligamento (L_r) y con qué sobreesfuerzo |
+
 Modelo, supuestos y límites: [MANTENIMIENTO_Y_FALLA.md](MANTENIMIENTO_Y_FALLA.md). Parámetros: `src/config.js → falla`. Lógica: `src/falla.js` (verificada en `tests/verify.cjs`). Visor: `src/ui/simulador3d.js`.

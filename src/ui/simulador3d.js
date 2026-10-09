@@ -34,12 +34,13 @@ export async function crearSimulador3D(cont, A, op = {}) {
   });
 
   // Grietas a escala real (1 mm = 0,001 m) perpendiculares al eje de la pieza.
-  const ejes = {};
-  for (const [pieza, pts] of Object.entries(pala.G)) { const a = pts[0], b = pts.at(-1); ejes[pieza] = Math.atan2(b[1] - a[1], b[0] - a[0]); }
   const grietas = {};
   for (const e of esferas) {
     const g = new THREE.Mesh(new THREE.BoxGeometry(1, 0.07, 0.07), new THREE.MeshStandardMaterial({ color: 0x120404, emissive: 0x3a0000, roughness: 0.9 }));
-    g.position.copy(e.pos); g.rotation.z = ejes[e.pieza] + Math.PI / 2; g.visible = false; g.renderOrder = 5; scene.add(g);
+    g.position.copy(e.pos);
+    if (e.cara === 'lado') g.rotation.z = e.angulo + Math.PI / 2; // en la placa lateral, transversal al eje de la pieza
+    else { g.rotation.y = Math.PI / 2; g.rotation.x = 0; }      // en la cara superior/inferior, a lo ancho
+    g.visible = false; g.renderOrder = 5; scene.add(g);
     grietas[e.codigo] = g;
   }
 

@@ -7,6 +7,7 @@ const vacio = () => ({
   fotos: [],                                    // fotos agregadas: { medicionId, codigo, fecha, src(dataURL) }
   decisiones: {},                               // idMedicion → { accion: 'aceptar'|'descartar'|'corregir', valor, fecha }
   ia: null,                                     // último diagnóstico IA { texto, fecha, modelo }
+  tareas: [],                                   // planificación de mantenimiento (tablero/calendario)
 });
 
 export function cargar(clave) {

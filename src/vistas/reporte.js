@@ -75,6 +75,9 @@ export function render(root, app) {
     </div>`;
   }).join('')}
 
+  ${(app.store.tareas || []).some((t) => t.estado !== 'hecha') ? `<div class="panel" style="margin-top:16px"><h2>Tareas de mantenimiento programadas</h2>
+    <table><thead><tr><th>Fecha</th><th>Tarea</th><th>Punto</th><th>Prioridad</th><th>Estado</th><th>Responsable</th></tr></thead><tbody>
+    ${[...app.store.tareas].filter((t) => t.estado !== 'hecha').sort((x, y) => String(x.fecha ?? '9').localeCompare(String(y.fecha ?? '9'))).map((t) => `<tr><td>${t.fecha ? fFecha(t.fecha) : '—'}</td><td>${esc(t.titulo)}</td><td>${esc(t.codigo || cfg.zonas[t.zonaId]?.corto || 'Equipo')}</td><td>${esc(t.prioridad)}</td><td>${esc({ planificar: 'Por planificar', programada: 'Programada', ejecucion: 'En ejecución' }[t.estado] ?? t.estado)}</td><td>${esc(t.responsable || '')}</td></tr>`).join('')}</tbody></table></div>` : ''}
   <div class="panel salto" style="margin-top:16px"><h2>Alertas</h2>
     ${A.alertas.filter((a) => a.severidad !== 'info').map((a) => `<div class="alerta-item"><div>${sevHTML(a.severidad)}</div><div><b>${esc(a.titulo)}</b><p class="acc">→ ${esc(a.accion)}</p></div><div></div></div>`).join('') || '<p>Sin alertas.</p>'}
   </div>

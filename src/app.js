@@ -16,11 +16,13 @@ import * as vCalidad from './vistas/calidad.js';
 import * as vReporte from './vistas/reporte.js';
 import * as vIA from './vistas/ia.js';
 import * as vSimulador from './vistas/simulador.js';
+import * as vPlan from './vistas/planificacion.js';
+import { kpisTareas } from './tareas.js';
 import { activarInfo } from './ui/ayuda.js';
 
 window.__appLista = true;
 
-const RUTAS = { flota: vFlota, equipo: vEquipo, zona: vZona, punto: vPunto, registrar: vRegistrar, historial: vHistorial, alertas: vAlertas, calidad: vCalidad, reporte: vReporte, ia: vIA, simulador: vSimulador };
+const RUTAS = { flota: vFlota, equipo: vEquipo, zona: vZona, punto: vPunto, registrar: vRegistrar, historial: vHistorial, alertas: vAlertas, calidad: vCalidad, reporte: vReporte, ia: vIA, simulador: vSimulador, plan: vPlan };
 
 export const app = {
   cfg: CONFIG,
@@ -106,7 +108,10 @@ function actualizarBadges() {
   b.hidden = !n; b.textContent = n; b.style.background = crit ? 'var(--critico)' : 'var(--alerta)'; b.style.color = crit ? '#fff' : '#111';
   const q = app.A.kpis.sospechososPendientes;
   const c = document.getElementById('badgeCalidad'); c.hidden = !q; c.textContent = q;
+  const kt = kpisTareas(app.store?.tareas || [], new Date().toISOString().slice(0, 10));
+  const p = document.getElementById('badgePlan'); if (p) { p.hidden = !kt.vencidas; p.textContent = kt.vencidas; }
 }
+app.actualizarBadges = actualizarBadges;
 
 function parsear() {
   const partes = (location.hash || '#/flota').replace(/^#\/?/, '').split('/').map(decodeURIComponent);
