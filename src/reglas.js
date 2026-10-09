@@ -120,8 +120,10 @@ export function analizarPunto(p, meds, ctx) {
       if (dh > 0) tasas.push({ desde: v[i - 1], hasta: v[i], tasa: ((v[i].Lef - v[i - 1].Lef) / dh) * 1000, ciclo: c.n });
     }
   }
-  const medianaTasas = mediana(tasas.filter((t) => t.tasa > 0).map((t) => t.tasa));
-  const maxTasa = tasas.length ? Math.max(0, ...tasas.map((t) => t.tasa)) : 0;
+  const crec = tasas.filter((t) => t.tasa > 0 && t.desde.Lef > 0);
+  const medianaTasas = mediana((crec.length ? crec : tasas.filter((t) => t.tasa > 0)).map((t) => t.tasa));
+  // Máxima tasa de crecimiento de una grieta ya existente (excluye la detección inicial desde 0, cuya fecha de inicio real se desconoce).
+  const maxTasa = Math.max(0, ...tasas.filter((t) => t.desde.Lef > 0).map((t) => t.tasa));
   const actual = ciclos.at(-1);
   const tasasCiclo = tasas.filter((t) => t.ciclo === actual.n);
   const tasaUltima = tasasCiclo.length ? tasasCiclo.at(-1).tasa : null;
@@ -143,7 +145,7 @@ export function analizarPunto(p, meds, ctx) {
     let ep = null;
     for (const r of validos) {
       const sobre = RANGO_ESTADO[estadoDe(r.Lef, p)] >= RANGO_ESTADO[nivel];
-      if (sobre && !ep) ep = { nivel, desde: { fecha: r.fecha, horas: r.horas }, maxL: r.Lef };
+      if (sobre && !ep) ep = { nivel, desde: { fecha: r.fecha, horas: r.horas }, Linicio: r.Lef, maxL: r.Lef };
       else if (sobre && ep) ep.maxL = Math.max(ep.maxL, r.Lef);
       else if (!sobre && ep) {
         ep.hasta = { fecha: r.fecha, horas: r.horas, evento: r.evento };
@@ -277,7 +279,12 @@ export function analizarFotos(A) {
   for (const p of A.modelo.puntos) zonas[p.zonaId] = zonas[p.zonaId] || { zonaId: p.zonaId, zona: p.zona, fotos: [] };
   for (const m of A.modelo.mediciones) {
     const z = m.codigo.split('-')[0];
-    (m.imagenes || []).filter((i) => esFoto(i, esquemas)).forEach((img) => zonas[z]?.fotos.push({ img, fecha: m.fecha, codigo: m.codigo, comentario: m.comentario }));
+    (m.imagenes || []).filter((i) => esFoto(i, esquemas)).forEach((img) => {
+      const zf = zonas[z]; if (!zf) return;
+      const ya = zf.fotos.find((f) => f.img === img); // misma foto referenciada por varios puntos
+      if (ya) { if (!ya.codigo.includes(m.codigo)) ya.codigo += ', ' + m.codigo; }
+      else zf.fotos.push({ img, fecha: m.fecha, codigo: m.codigo, comentario: m.comentario });
+    });
   }
   for (const z of Object.values(zonas)) {
     z.fotos.sort((a, b) => (a.fecha < b.fecha ? 1 : -1));
@@ -444,7 +451,7 @@ export function historialAlertas(modelo, cfg, decisiones) {
     const f = insp[i].fecha;
     const sub = { ...modelo, inspecciones: insp.slice(0, i + 1), mediciones: modelo.mediciones.filter((m) => m.fecha <= f) };
     const A = analizar(sub, cfg, decisiones);
-    pasos.push({ fecha: f, horas: insp[i].horas, alertas: A.alertas.filter((a) => ['umbral', 'proximidad', 'crecimiento', 'sospechoso'].includes(a.tipo)) });
+    pasos.push({ fecha: f, horas: insp[i].horas, alertas: A.alertas.filter((a) => ['umbral', 'proximidad', 'crecimiento'].includes(a.tipo)) });
   }
   // Primera emisión de cada alerta (por id) → línea de tiempo.
   const vistos = new Map();

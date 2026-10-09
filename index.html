@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Integridad estructural EX3600</title>
+  <meta name="description" content="Plataforma de gestión de integridad estructural de la pala Hitachi EX3600: historial de grietas, tendencias, alertas y plan de mantenimiento.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230c1320'/%3E%3Cpath d='M6 24 L14 10 L22 14 L26 22' stroke='%23e0a020' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='22' cy='14' r='3' fill='%23d64545'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="src/estilos.css">
+  <script src="vendor/xlsx.full.min.js"></script>
+  <script src="vendor/chart.umd.min.js"></script>
+  <script src="vendor/chartjs-plugin-annotation.min.js"></script>
+  <script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
+</head>
+<body>
+  <header class="barra no-print">
+    <a class="marca" href="#/flota" aria-label="Inicio">
+      <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true"><path d="M5 25 L13 9 L22 13 L27 23" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="22" cy="13" r="3.2" fill="#d64545"/></svg>
+      <span><b>Integridad estructural</b><small>Pala Hitachi EX3600</small></span>
+    </a>
+    <button class="menu-btn" id="menuBtn" aria-label="Menú" aria-expanded="false">☰</button>
+    <nav id="nav" class="nav">
+      <a href="#/flota" data-r="flota">Flota</a>
+      <a href="#/equipo/3600-01" data-r="equipo">Equipo</a>
+      <a href="#/alertas" data-r="alertas">Alertas <span class="badge" id="badgeAlertas" hidden></span></a>
+      <a href="#/registrar" data-r="registrar">Registrar</a>
+      <a href="#/historial" data-r="historial">Historial</a>
+      <a href="#/calidad" data-r="calidad">Calidad de datos <span class="badge violeta" id="badgeCalidad" hidden></span></a>
+      <a href="#/reporte" data-r="reporte">Reporte</a>
+      <a href="#/ia" data-r="ia">IA</a>
+    </nav>
+  </header>
+  <div class="migas no-print" id="migas" aria-label="Ruta"></div>
+  <main id="vista" class="vista" tabindex="-1">
+    <div class="cargando" id="cargando">Cargando historial de inspecciones…</div>
+  </main>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <input type="file" id="archivoExcel" accept=".xlsx,.xls" hidden>
+
+  <script>
+    // Si se abre como archivo local, los módulos ES no cargan en la mayoría de los navegadores.
+    setTimeout(function () {
+      if (!window.__appLista) {
+        var c = document.getElementById('cargando');
+        if (c) c.innerHTML = location.protocol === 'file:'
+          ? '<h2>Abra la plataforma con un servidor local</h2><p>Los navegadores bloquean los módulos JavaScript al abrir <code>index.html</code> como archivo. Use una de estas opciones:</p><ol><li>Doble clic en <b>iniciar.bat</b> (Windows) o ejecute <code>python -m http.server 8000</code> en esta carpeta y abra <a href="http://localhost:8000">http://localhost:8000</a>.</li><li>Use el link publicado en GitHub Pages (ver README).</li></ol>'
+          : '<h2>No se pudo iniciar la plataforma</h2><p>Revise la consola del navegador.</p>';
+      }
+    }, 2500);
+  </script>
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>
