@@ -13,7 +13,7 @@ const PIEZA_DE_ZONA = { BM: 'boom', BR: 'brazo', CU: 'cucharon' };
 
 export function render(root, app, [piezaRuta]) {
   const A = app.A; const cfg = app.cfg; const f = { ...cfg.falla };
-  if (piezaRuta && PIEZAS[piezaRuta]) modoPieza = piezaRuta;
+  modoPieza = piezaRuta && PIEZAS[piezaRuta] ? piezaRuta : 'general';
   const zonaSel = PIEZAS[modoPieza].zona; const zonaCfg = zonaSel ? cfg.zonas[zonaSel] : null;
   app.migas([{ t: 'Flota', h: '#/flota' }, { t: `Equipo ${A.modelo.equipo.id}`, h: `#/equipo/${A.modelo.equipo.id}` }, { t: 'Simulador de falla', h: '#/simulador' }, ...(zonaCfg ? [{ t: zonaCfg.nombre }] : [])]);
   if (!velocidadSel) velocidadSel = f.velocidades[1];
