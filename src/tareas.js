@@ -120,3 +120,36 @@ export function kpisTareas(tareas, hoy) {
   const pend = tareas.filter((t) => t.estado !== 'hecha');
   return { total: tareas.length, pendientes: pend.length, vencidas: pend.filter((t) => vencida(t, hoy)).length, hechas: tareas.filter((t) => t.estado === 'hecha').length, altas: pend.filter((t) => t.prioridad === 'alta').length, porColumna: Object.fromEntries(COLUMNAS.map((c) => [c.id, tareas.filter((t) => t.estado === c.id).length])) };
 }
+
+/**
+ * Plan inicial de mantenimiento construido con los datos del historial: las reparaciones y cambios
+ * registrados quedan como tareas hechas (agrupadas por parada), las recomendaciones vigentes se
+ * programan con responsable y quedan algunas en ejecución. Se siembra una sola vez (store.planSembrado).
+ */
+export function planInicial(A, hoyReal = null) {
+  const hoy = hoyReal && hoyReal > A.ultimaInsp.fecha ? hoyReal : A.ultimaInsp.fecha;
+  const out = [];
+  // 1) Historial: eventos de reparación / cambio por fecha.
+  const porFecha = {};
+  for (const a of Object.values(A.puntos)) for (const r of a.registros) if (r.evento) (porFecha[r.fecha] = porFecha[r.fecha] || []).push({ codigo: a.codigo, evento: r.evento, comentario: r.comentario, zonaId: a.punto.zonaId, horas: r.horas });
+  for (const [fecha, evs] of Object.entries(porFecha).sort()) {
+    const insp = A.inspecciones.find((i) => i.fecha === fecha);
+    const hecho = (base) => out.push(nuevaTarea({ ...base, origen: 'historial', estado: 'hecha', fecha, horas: Math.round(insp?.horas ?? evs[0].horas ?? 0), responsable: 'Taller estructural', creada: fecha + 'T08:00:00.000Z', actualizada: fecha + 'T18:00:00.000Z', terminada: fecha + 'T18:00:00.000Z', historial: [{ fecha: fecha + 'T08:00:00.000Z', estado: 'programada' }, { fecha: fecha + 'T18:00:00.000Z', estado: 'hecha' }] }));
+    const cambios = evs.filter((e) => e.evento === 'cambio'); const reps = evs.filter((e) => e.evento === 'reparacion');
+    if (cambios.length) { const z = cambios[0].zonaId; hecho({ clave: `hist|cambio|${fecha}`, tipo: 'cambio', zonaId: z, prioridad: 'alta', titulo: `Cambio de ${A.cfg.zonas[z]?.corto?.toLowerCase() ?? 'componente'} (${cambios[0].comentario || 'componente nuevo'})`, duracionH: TIPOS.cambio.dur, descripcion: `Registrado en la inspección del ${fecha}: ${[...new Set(cambios.map((e) => e.codigo))].join(', ')} reiniciados a 0 mm.`, checklist: [{ texto: 'Desmontar componente', ok: true }, { texto: 'Montar componente nuevo', ok: true }, { texto: 'Inspección inicial de puntos', ok: true }] }); }
+    if (reps.length >= 2) hecho({ clave: `hist|parada|${fecha}`, tipo: 'parada', prioridad: 'alta', titulo: `Parada de reparación (${reps.length} puntos)`, duracionH: 24 + 10 * reps.length, descripcion: `Reparaciones por soldadura registradas el ${fecha}: ${reps.map((e) => e.codigo).join(', ')}.`, checklist: reps.map((e) => ({ texto: `Reparar ${e.codigo}${e.comentario ? ' · ' + e.comentario : ''}`, ok: true })) });
+    else for (const e of reps) hecho({ clave: `hist|rep|${fecha}|${e.codigo}`, tipo: 'reparacion', codigo: e.codigo, zonaId: e.zonaId, prioridad: 'alta', titulo: `Reparación por soldadura de ${e.codigo}`, duracionH: TIPOS.reparacion.dur, descripcion: e.comentario || 'Zona reparada por soldadura (registrada con L = 0).', checklist: listaReparacion(e.codigo).map((c) => ({ ...c, ok: true })) });
+  }
+  // 2) Recomendaciones vigentes, programadas con responsable.
+  const resp = { parada: 'Jefe de mantenimiento', reparacion: 'Taller estructural', inspeccion: A.ultimaInsp.inspector || 'Inspector', remedicion: A.ultimaInsp.inspector || 'Inspector', foto: A.ultimaInsp.inspector || 'Inspector' };
+  for (const t of sugerir(A, [], hoy)) {
+    const programar = ['parada', 'reparacion'].includes(t.tipo) || t.clave === 'inspeccion-periodica';
+    out.push(programar ? mover({ ...t, responsable: resp[t.tipo] || '' }, 'programada') : { ...t, responsable: resp[t.tipo] || '' });
+  }
+  // 3) Trabajo en curso derivado de los hallazgos.
+  const reinc = Object.values(A.puntos).filter((a) => a.reincidencias).map((a) => a.codigo);
+  if (reinc.length) out.push(mover(nuevaTarea({ clave: 'causa-raiz-soldadura', tipo: 'otra', prioridad: 'media', titulo: 'Revisar procedimiento de soldadura (reincidencias)', fecha: hoy, responsable: 'Ingeniero de confiabilidad', duracionH: 8, descripcion: `Grietas reaparecidas tras reparar en ${reinc.join(', ')}. Verificar WPS, precalentamiento, material de aporte y preparación de junta.`, checklist: [{ texto: 'Recopilar registros de reparación', ok: true }, { texto: 'Comparar con WPS vigente', ok: true }, { texto: 'Ensayo de dureza / macrografía en una reparación', ok: false }, { texto: 'Emitir recomendación', ok: false }] }), 'ejecucion'));
+  const sosp = Object.values(A.puntos).flatMap((a) => a.registros.filter((r) => r.calidad?.sospechoso).map((r) => `${a.codigo} ${r.fecha} (${r.L} mm)`));
+  if (sosp.length) out.push(mover(nuevaTarea({ clave: 'calidad-datos', tipo: 'remedicion', prioridad: 'media', titulo: 'Confirmar datos sospechosos del historial', fecha: hoy, responsable: A.ultimaInsp.inspector || 'Inspector', duracionH: 2, descripcion: `Revisar con el inspector: ${sosp.join('; ')}. Decidir en Calidad de datos (es real / descartar / corregir).`, checklist: sosp.map((x) => ({ texto: x, ok: false })) }), 'ejecucion'));
+  return out;
+}

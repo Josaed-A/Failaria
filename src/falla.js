@@ -234,3 +234,23 @@ export function cargasPorDistancia(s, distancias, radio) {
   for (const [c, d] of Object.entries(distancias)) out[c] = s * Math.exp(-(d * d) / (2 * radio * radio));
   return out;
 }
+
+/**
+ * Tensión normalizada (0..1) a distancia r de la punta de grieta (en unidades de a) y ángulo θ,
+ * según el campo singular de Irwin σ_yy ∝ K/√(2πr)·cos(θ/2)·[1 + sin(θ/2)·sin(3θ/2)].
+ * Kr escala el campo; se satura a 1 dentro de la zona plástica r_p.
+ */
+export function tensionLocal(r, theta, Kr, rp = 0.03) {
+  if (!(Kr > 0)) return 0;
+  const ang = Math.cos(theta / 2) * (1 + Math.sin(theta / 2) * Math.sin(1.5 * theta));
+  const v = Kr * Math.sqrt(rp / Math.max(r, 1e-6)) * Math.max(0, ang);
+  return Math.min(1, v);
+}
+
+/** Radio de la zona plástica (en unidades de a): r_p/a ≈ (Kr·√(a/a_c)... ) simplificado a k·Kr². */
+export const zonaPlastica = (Kr) => Math.min(0.6, 0.12 * Kr * Kr);
+
+/** Evolución de la grieta en los próximos `horas` h: longitud al final sin carga y con el sobreesfuerzo s. */
+export function evolucionLocal(M, a, horas, s = 0) {
+  return { sinCarga: avanzar(M, a, horas, 0), conCarga: avanzar(M, a, horas, s), horasFalla: horasHasta(M, a, M.aCrit, s) };
+}

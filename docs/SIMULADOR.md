@@ -13,6 +13,16 @@ Responde **cuándo y cómo** fallaría cada pieza según la gravedad de su griet
 | Clic en una esfera o en una fila | Detalle del punto: longitud, tasa, modo, horas y fecha de falla, mecanismo dominante del FAD |
 | ↺ | Vuelve al estado de la última inspección y limpia el daño del mouse |
 
+## Modo por pieza e inspección
+
+El selector **General · Boom · Brazo · Cucharón** muestra un solo componente, modelado según su esquema de inspección (`assets/esquemas`): boom con pie bifurcado, orejas de los cilindros, soporte del cilindro del brazo, horquilla de punta y mamparos; brazo ahusado con orejas en abanico, bujes y horquilla del cucharón; cucharón con concha, placas laterales, rejillas de desgaste, labio, dientes, cuchillas laterales, bujes y orejas del balancín. La simulación es la misma en todos los modos: las grietas siguen creciendo al cambiar de pieza.
+
+En modo pieza aparece el panel **Inspección**: una tarjeta por punto con su estado, la grieta si existe (longitud simulada y último dato real), **Ver** (la cámara va al punto) y **Lupa** (vista cercana). También se puede tirar de la pieza con el mouse igual que en el modo general.
+
+## Lupa de grieta
+
+Vista cercana en 2D del punto seleccionado, a escala (regla en mm; `a_c` ocupa el ancho): campo de tensión de Irwin alrededor de las puntas (σ ∝ K/√(2πr)), zona plástica, marcas de Caution, Danger y `a_c`, la grieta actual y hasta dónde llegará en el próximo intervalo de inspección **sin carga** (trazo blanco) y **con el sobreesfuerzo aplicado** (trazo rojo). Arrastrar sobre la lupa aplica esfuerzo solo a ese punto, con las mismas consecuencias que tirar en el 3D.
+
 ## Qué se ve
 
 * **Mapa FEA:** azul sano → rojo crítico. El halo de cada grieta crece con su gravedad `L/a_c`; el sobreesfuerzo del mouse se superpone en el punto de agarre y deja huella.

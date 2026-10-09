@@ -247,7 +247,7 @@ export function exportarLibro(XLSX, modelo, extra = {}) {
     ['Inspecciones', modelo.inspecciones.length],
     ['Zonas', `${new Set(modelo.puntos.map((p) => p.zonaId)).size} zonas, ${modelo.puntos.length} puntos de inspección (ver hoja Puntos)`],
     [null, null],
-    ['Exportado', `Plataforma de integridad estructural EX3600 · ${new Date().toISOString().slice(0, 10)}`],
+    ['Exportado', `Failaria · Plataforma de integridad estructural EX3600 · ${new Date().toISOString().slice(0, 10)}`],
     ['L actual (mm)', 'Longitud de grieta medida en la inspección. 0 = sin grieta detectable.'],
     ['Celda vacía', 'Punto no inspeccionado en esa fecha (N/I).'],
     ['Criterio de estado', 'Normal: L < Caution  |  Alerta: Caution ≤ L < Danger  |  Crítico: L ≥ Danger'],

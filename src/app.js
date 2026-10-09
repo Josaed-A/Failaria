@@ -17,7 +17,7 @@ import * as vReporte from './vistas/reporte.js';
 import * as vIA from './vistas/ia.js';
 import * as vSimulador from './vistas/simulador.js';
 import * as vPlan from './vistas/planificacion.js';
-import { kpisTareas } from './tareas.js';
+import { kpisTareas, planInicial } from './tareas.js';
 import { activarInfo } from './ui/ayuda.js';
 
 window.__appLista = true;
@@ -167,6 +167,11 @@ async function iniciar() {
     return;
   }
   app.recalcular();
+  // Plan de mantenimiento inicial a partir del historial (una sola vez; se puede restablecer desde Plan).
+  if (!app.store.planSembrado) {
+    app.store.tareas = planInicial(app.A, new Date().toISOString().slice(0, 10));
+    app.store.planSembrado = true; app.guardar(); actualizarBadges();
+  }
   render();
 }
 

@@ -82,20 +82,123 @@ function vigaGeometria(THREE, camino, perfil, N = 48, fea = false) {
   return g;
 }
 
+const BASE_COLOR = [0.11, 0.18, 0.54];
+function pintarBase(THREE, geo, fea) {
+  if (!fea) return geo;
+  const n = geo.attributes.position.count; const col = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) { col[i * 3] = BASE_COLOR[0]; col[i * 3 + 1] = BASE_COLOR[1]; col[i * 3 + 2] = BASE_COLOR[2]; }
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3)); return geo;
+}
+
+/** Materiales compartidos por la pala y las piezas sueltas. */
+export function materiales(THREE, fea) {
+  const amarillo = 0xd9a21b;
+  return {
+    metal: fea ? new THREE.MeshStandardMaterial({ vertexColors: true, metalness: 0.25, roughness: 0.6 }) : new THREE.MeshStandardMaterial({ color: amarillo, metalness: 0.35, roughness: 0.55 }),
+    carroceria: new THREE.MeshStandardMaterial({ color: fea ? 0x4a5566 : amarillo, metalness: 0.35, roughness: 0.55 }),
+    oscuro: new THREE.MeshStandardMaterial({ color: 0x2b3240, metalness: 0.4, roughness: 0.7 }),
+    negro: new THREE.MeshStandardMaterial({ color: 0x1a1e26, metalness: 0.2, roughness: 0.9 }),
+    acero: new THREE.MeshStandardMaterial({ color: 0x9aa4b2, metalness: 0.8, roughness: 0.3 }),
+    cromo: new THREE.MeshStandardMaterial({ color: 0xdfe6ee, metalness: 1, roughness: 0.15 }),
+    vidrio: new THREE.MeshStandardMaterial({ color: 0x7fb8e0, metalness: 0.2, roughness: 0.1, transparent: true, opacity: 0.7 }),
+    soldadura: new THREE.MeshStandardMaterial({ color: 0x3a3f4a, metalness: 0.5, roughness: 0.8 }),
+  };
+}
+
 /**
- * Construye la pala dentro de `scene`. Con `op.fea` las piezas estructurales (boom, brazo, cucharón)
- * usan colores por vértice para el mapa de daño y el resto va en gris. Devuelve { estructura, G }.
+ * Construye UNA pieza estructural (boom | brazo | cucharon) modelada según los esquemas de assets/esquemas:
+ * boom con pie bifurcado, orejas de los cilindros, soporte del cilindro del brazo, horquilla de punta y mamparos;
+ * brazo ahusado con orejas en abanico, bujes y horquilla del cucharón; cucharón con concha, placas laterales,
+ * rejillas de desgaste, labio, dientes, cuchillas laterales, bujes y orejas del balancín.
+ * Devuelve { estructura: meshes con userData.pieza (coloreables por vértice), decor: resto }.
+ */
+export function construirPieza(THREE, scene, pieza, op = {}) {
+  const fea = !!op.fea; const M = op.mat || materiales(THREE, fea);
+  const estructura = []; const decor = [];
+  const add = (m, parent = scene, est = false) => { parent.add(m); (est ? estructura : decor).push(m); if (est) m.userData.pieza = pieza; return m; };
+  const cajaE = (sx, sy, sz, x, y, z, rz = 0, parent = scene, mat = M.metal) => { const m = new THREE.Mesh(pintarBase(THREE, new THREE.BoxGeometry(sx, sy, sz), fea && mat === M.metal), mat); m.position.set(x, y, z); m.rotation.z = rz; return add(m, parent, mat === M.metal); };
+  const ejeZ = (x, y, r, largo, mat = M.acero, parent = scene) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, largo, 24), mat); m.rotation.x = Math.PI / 2; m.position.set(x, y, 0); return add(m, parent); };
+  const bujeE = (x, y, r, largo, parent = scene) => { const m = new THREE.Mesh(pintarBase(THREE, new THREE.CylinderGeometry(r, r, largo, 24), fea), M.metal); m.rotation.x = Math.PI / 2; m.position.set(x, y, 0); return add(m, parent, true); };
+  const anillo = (p, tg, h, w, parent = scene) => { // mamparo / cordón transversal
+    const m = new THREE.Mesh(new THREE.BoxGeometry(0.05, h + 0.03, w + 0.03), M.soldadura); m.position.set(p[0], p[1], 0); m.rotation.z = Math.atan2(tg[1], tg[0]); return add(m, parent);
+  };
+
+  if (pieza === 'boom') {
+    const viga = new THREE.Mesh(vigaGeometria(THREE, (t) => puntoEnPieza('boom', t), PERFIL.boom, 72, fea), M.metal); add(viga, scene, true);
+    for (const t of [0.1, 0.2, 0.31, 0.5, 0.63, 0.76, 0.9]) { const { p, tg } = puntoEnPieza('boom', t); const { h, w } = PERFIL.boom(t); anillo(p, tg, h, w); }
+    // Pie bifurcado: dos orejas con buje (pasador al bastidor)
+    const f = puntoEnPieza('boom', 0); const af = Math.atan2(f.tg[1], f.tg[0]);
+    for (const z of [-0.95, 0.95]) cajaE(1.4, 1.5, 0.26, f.p[0] - 0.25, f.p[1] - 0.05, z, af);
+    bujeE(f.p[0] - 0.55, f.p[1] - 0.2, 0.42, 2.4); ejeZ(f.p[0] - 0.55, f.p[1] - 0.2, 0.3, 2.7);
+    // Orejas de los cilindros del boom (parte inferior)
+    { const { p, tg } = puntoEnPieza('boom', 0.42); const n = [-tg[1], tg[0]]; const a = Math.atan2(tg[1], tg[0]);
+      for (const z of [-1.0, 1.0]) cajaE(1.1, 0.75, 0.2, p[0] - n[0] * 0.95, p[1] - n[1] * 0.95, z, a);
+      bujeE(p[0] - n[0] * 1.15, p[1] - n[1] * 1.15, 0.28, 2.3); ejeZ(p[0] - n[0] * 1.15, p[1] - n[1] * 1.15, 0.2, 2.6); }
+    // Soporte del cilindro del brazo (parte superior, dos orejas verticales)
+    { const { p, tg } = puntoEnPieza('boom', 0.5); const n = [-tg[1], tg[0]]; const a = Math.atan2(tg[1], tg[0]);
+      for (const z of [-0.42, 0.42]) cajaE(1.1, 1.0, 0.16, p[0] + n[0] * 1.2, p[1] + n[1] * 1.2, z, a + 0.35);
+      bujeE(p[0] + n[0] * 1.55, p[1] + n[1] * 1.55, 0.26, 1.1); ejeZ(p[0] + n[0] * 1.55, p[1] + n[1] * 1.55, 0.18, 1.5); }
+    // Horquilla de punta (pasador del brazo)
+    { const { p, tg } = puntoEnPieza('boom', 1); const a = Math.atan2(tg[1], tg[0]);
+      for (const z of [-0.72, 0.72]) cajaE(1.2, 1.1, 0.22, p[0] + 0.15, p[1] - 0.05, z, a);
+      bujeE(p[0] + 0.35, p[1] - 0.1, 0.4, 1.7); ejeZ(p[0] + 0.35, p[1] - 0.1, 0.3, 2.0); }
+  }
+
+  if (pieza === 'brazo') {
+    const B0 = PIVOTES.brazo[0], B1 = PIVOTES.brazo[1]; const dB = [B1[0] - B0[0], B1[1] - B0[1]]; const LB = Math.hypot(...dB); const uB = [dB[0] / LB, dB[1] / LB]; const nB = [-uB[1], uB[0]];
+    const ext = 1.25; const atras = [B0[0] - uB[0] * ext, B0[1] - uB[1] * ext]; const aB = Math.atan2(uB[1], uB[0]);
+    const camino = (t) => ({ p: [atras[0] + (B1[0] - atras[0]) * t, atras[1] + (B1[1] - atras[1]) * t], tg: uB });
+    const perfil = (t) => PERFIL.brazo(Math.max(0, (t * (LB + ext) - ext) / LB));
+    add(new THREE.Mesh(vigaGeometria(THREE, camino, perfil, 56, fea), M.metal), scene, true);
+    for (const t of [0.33, 0.47, 0.6, 0.74, 0.88]) { const { p } = camino(t); const { h, w } = perfil(t); anillo(p, uB, h, w); }
+    // Orejas en abanico del extremo trasero (cilindro del brazo) y buje
+    for (const [z, k] of [[-0.36, 0], [0, 1], [0.36, 2]]) cajaE(1.3, 0.5, 0.14, atras[0] - uB[0] * 0.35 + nB[0] * (0.55 + 0.12 * k), atras[1] - uB[1] * 0.35 + nB[1] * (0.55 + 0.12 * k), z, aB + 0.55 + 0.12 * k);
+    bujeE(atras[0] - uB[0] * 0.75 + nB[0] * 1.0, atras[1] - uB[1] * 0.75 + nB[1] * 1.0, 0.24, 1.1); ejeZ(atras[0] - uB[0] * 0.75 + nB[0] * 1.0, atras[1] - uB[1] * 0.75 + nB[1] * 1.0, 0.16, 1.4);
+    // Buje del pivote boom–brazo
+    bujeE(B0[0], B0[1], 0.5, 1.15); ejeZ(B0[0], B0[1], 0.3, 1.6);
+    // Oreja del balancín del cucharón (dos placas)
+    { const m = [B0[0] + uB[0] * 2.9, B0[1] + uB[1] * 2.9]; for (const z of [-0.42, 0.42]) cajaE(0.8, 0.7, 0.14, m[0] + nB[0] * 0.65, m[1] + nB[1] * 0.65, z, aB); bujeE(m[0] + nB[0] * 0.95, m[1] + nB[1] * 0.95, 0.2, 1.0); ejeZ(m[0] + nB[0] * 0.95, m[1] + nB[1] * 0.95, 0.13, 1.3); }
+    // Horquilla del cucharón
+    for (const z of [-0.62, 0.62]) cajaE(1.0, 0.95, 0.2, B1[0] - uB[0] * 0.2, B1[1] - uB[1] * 0.2, z, aB);
+    bujeE(B1[0], B1[1], 0.38, 1.5); ejeZ(B1[0], B1[1], 0.25, 2.3);
+  }
+
+  if (pieza === 'cucharon') {
+    const C = PIVOTES.cucharon[0], D = PIVOTES.cucharon[1];
+    const cu = new THREE.Group(); scene.add(cu);
+    const ang = Math.atan2(D[1] - C[1], D[0] - C[0]); const Lc = Math.hypot(D[0] - C[0], D[1] - C[1]);
+    cu.position.set(C[0], C[1], 0); cu.rotation.z = ang;
+    const concha = [[0.15, 0.6], [-0.3, 0.25], [-0.42, -0.3], [-0.1, -0.8], [0.6, -1.08], [1.4, -1.12], [Lc, -0.75]];
+    const seg = concha.slice(1).map((q, i) => Math.hypot(q[0] - concha[i][0], q[1] - concha[i][1])); const Lcon = seg.reduce((a, b) => a + b, 0);
+    const enConcha = (t) => { let d = t * Lcon; for (let i = 0; i < seg.length; i++) { if (d <= seg[i] || i === seg.length - 1) { const k = Math.min(1, d / seg[i]); const a = concha[i], b = concha[i + 1]; const tg = [(b[0] - a[0]) / seg[i], (b[1] - a[1]) / seg[i]]; return { p: [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k], tg }; } d -= seg[i]; } };
+    add(new THREE.Mesh(vigaGeometria(THREE, enConcha, () => ({ h: 0.16, w: 2.6 }), 44, fea), M.metal), cu, true);
+    // Rejillas de desgaste: barras longitudinales sobre la concha, a lo ancho
+    for (let z = -1.1; z <= 1.11; z += 0.44) for (let i = 0; i < seg.length; i++) { const a = concha[i], b = concha[i + 1]; const tg = [(b[0] - a[0]) / seg[i], (b[1] - a[1]) / seg[i]]; const n = [tg[1], -tg[0]]; const m = new THREE.Mesh(new THREE.BoxGeometry(seg[i], 0.06, 0.1), M.soldadura); m.position.set((a[0] + b[0]) / 2 + n[0] * 0.1, (a[1] + b[1]) / 2 + n[1] * 0.1, z); m.rotation.z = Math.atan2(tg[1], tg[0]); add(m, cu); }
+    // Placas laterales y placas de desgaste laterales
+    const lado = new THREE.Shape(); [[0.15, 0.6], [-0.3, 0.25], [-0.42, -0.3], [-0.1, -0.8], [0.6, -1.08], [1.4, -1.12], [Lc, -0.75], [Lc - 0.1, -0.1], [1.3, 0.35]].forEach(([x, y], i) => (i ? lado.lineTo(x, y) : lado.moveTo(x, y)));
+    for (const z of [-1.37, 1.37]) { const m = new THREE.Mesh(pintarBase(THREE, new THREE.ExtrudeGeometry(lado, { depth: 0.14, bevelEnabled: false }), fea), M.metal); m.position.z = z - 0.07; add(m, cu, true); }
+    for (const z of [-1.5, 1.5]) for (let k = 0; k < 3; k++) { const m = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.9 - 0.2 * k, 0.05), M.soldadura); m.position.set(0.25 + 0.6 * k, -0.45 - 0.1 * k, z); add(m, cu); }
+    // Labio reforzado, dientes y cuchillas laterales
+    cajaE(0.3, 0.22, 2.75, Lc - 0.05, -0.75, 0, 0, cu);
+    for (let i = 0; i < 6; i++) { const d = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.62, 4), M.acero); d.rotation.z = -Math.PI / 2 - 0.25; d.position.set(Lc + 0.24, -0.84, -1.05 + i * 0.42); add(d, cu); }
+    for (const z of [-1.42, 1.42]) { const m = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.5, 0.08), M.acero); m.position.set(Lc + 0.05, -0.55, z); m.rotation.z = -0.3; add(m, cu); }
+    // Bujes de pivote y orejas del balancín (tres pares)
+    for (const z of [-0.85, 0.85]) { const b1 = bujeE(0, 0.05, 0.34, 0.5, cu); b1.position.z = z; const e = ejeZ(0, 0.05, 0.22, 0.5, M.acero, cu); e.position.z = z; }
+    ejeZ(0, 0.05, 0.2, 2.4, M.acero, cu);
+    for (const z of [-0.5, 0, 0.5]) for (const dz of [-0.09, 0.09]) cajaE(0.6, 0.55, 0.1, 0.55, 0.6, z + dz, 0.2, cu);
+    bujeE(0.75, 0.8, 0.14, 1.3, cu); ejeZ(0.75, 0.8, 0.09, 1.5, M.acero, cu);
+  }
+  scene.updateMatrixWorld(true);
+  return { estructura, decor };
+}
+
+/**
+ * Construye la pala completa dentro de `scene`: tren de rodaje, superestructura, las tres piezas
+ * estructurales (construirPieza) y los cilindros hidráulicos. Devuelve { estructura, G }.
  */
 export function construirPala(THREE, scene, op = {}) {
-  const fea = !!op.fea;
-  const amarillo = 0xd9a21b;
-  const metal = fea ? new THREE.MeshStandardMaterial({ vertexColors: true, metalness: 0.25, roughness: 0.6 }) : new THREE.MeshStandardMaterial({ color: amarillo, metalness: 0.35, roughness: 0.55 });
-  const carroceria = new THREE.MeshStandardMaterial({ color: fea ? 0x4a5566 : amarillo, metalness: 0.35, roughness: 0.55 });
-  const oscuro = new THREE.MeshStandardMaterial({ color: 0x2b3240, metalness: 0.4, roughness: 0.7 });
-  const negro = new THREE.MeshStandardMaterial({ color: 0x1a1e26, metalness: 0.2, roughness: 0.9 });
-  const acero = new THREE.MeshStandardMaterial({ color: 0x9aa4b2, metalness: 0.8, roughness: 0.3 });
-  const cromo = new THREE.MeshStandardMaterial({ color: 0xdfe6ee, metalness: 1, roughness: 0.15 });
-  const vidrio = new THREE.MeshStandardMaterial({ color: 0x7fb8e0, metalness: 0.2, roughness: 0.1, transparent: true, opacity: 0.7 });
+  const fea = !!op.fea; const M = materiales(THREE, fea);
+  const { carroceria, oscuro, negro, acero, cromo, vidrio } = M;
   const estructura = [];
   const add = (m, parent = scene) => { parent.add(m); return m; };
   const caja = (sx, sy, sz, mat, x, y, z, parent = scene) => { const m = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), mat); m.position.set(x, y, z); return add(m, parent); };
@@ -134,7 +237,6 @@ export function construirPala(THREE, scene, op = {}) {
     }
   }
   caja(4.0, 1.1, 3.9, oscuro, 0, 1.55, 0);                     // carro central
-  eje(0, 2.12, 2.1, 0.32, acero).rotation.x = 0;              // corona de giro
   const corona = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 2.1, 0.32, 48), acero); corona.position.set(0, 2.12, 0); add(corona);
 
   // --- Superestructura: plataforma, casa de máquinas, contrapeso, cabina, pasarelas ---
@@ -150,48 +252,29 @@ export function construirPala(THREE, scene, op = {}) {
   caja(1.5, 0.6, 1.8, carroceria, 1.9, 2.95, -1.6);           // tanque hidráulico
   for (const [x, z] of [[-4.3, 2.7], [-4.3, -2.7], [2.6, -2.7], [0.5, -2.7], [-2, -2.7], [2.6, 2.8]]) { cil([x, 2.6], [x, 3.6], 0.03, acero, z); } // postes de barandas
   cil([-4.3, 3.6], [2.6, 3.6], 0.03, acero, -2.7); cil([-4.3, 3.6], [-4.3, 3.6], 0.03, acero, 2.7, scene, -2.7); cil([-4.3, 3.1], [2.6, 3.1], 0.03, acero, -2.7);
-  // Pie del boom (soporte en A)
-  for (const z of [-0.85, 0.85]) caja(1.3, 1.2, 0.35, carroceria, 2.0, 3.1, z);
-  eje(2.4, 3.6, 0.3, 2.1, acero);
+  for (const z of [-1.25, 1.25]) caja(1.3, 1.2, 0.3, carroceria, 1.9, 3.1, z); // soporte del pie del boom
 
-  // --- Boom curvo (viga lofteada) con refuerzos y orejas ---
-  const vigaMesh = (pieza, camino, perfil, N) => { const m = new THREE.Mesh(vigaGeometria(THREE, camino, perfil, N, fea), metal); m.userData.pieza = pieza; estructura.push(m); return add(m); };
-  vigaMesh('boom', (t) => puntoEnPieza('boom', t), PERFIL.boom, 64);
-  { const { p } = puntoEnPieza('boom', 0.5); eje(p[0], p[1] + 0.95, 0.22, 1.6, acero); } // orejas del cilindro del brazo
-  { const { p, tg } = puntoEnPieza('boom', 0.42); const n = [-tg[1], tg[0]]; for (const z of [-1.05, 1.05]) { const o = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.5, 0.18), carroceria); o.position.set(p[0] - n[0] * 0.95, p[1] - n[1] * 0.95, z); o.rotation.z = Math.atan2(tg[1], tg[0]); add(o); } } // orejas de los cilindros del boom
-  eje(10.2, 7.9, 0.3, 1.5, acero);                             // pasador boom–brazo
-
-  // --- Brazo (stick): se prolonga detrás del pivote para el cilindro del brazo ---
-  const B0 = PIVOTES.brazo[0], B1 = PIVOTES.brazo[1]; const dB = [B1[0] - B0[0], B1[1] - B0[1]]; const LB = Math.hypot(...dB); const uB = [dB[0] / LB, dB[1] / LB];
-  const ext = 1.25; const atras = [B0[0] - uB[0] * ext, B0[1] - uB[1] * ext];
-  vigaMesh('brazo', (t) => ({ p: [atras[0] + (B1[0] - atras[0]) * t, atras[1] + (B1[1] - atras[1]) * t], tg: uB }), (t) => PERFIL.brazo(Math.max(0, (t * (LB + ext) - ext) / LB)), 48);
-  eje(atras[0], atras[1], 0.2, 1.3, acero);
-  eje(B1[0], B1[1], 0.25, 2.2, acero);                         // pasador brazo–cucharón
-  { const m = [B0[0] + uB[0] * 2.9, B0[1] + uB[1] * 2.9]; const n = [-uB[1], uB[0]]; const o = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.55, 0.9), carroceria); o.position.set(m[0] + n[0] * 0.7, m[1] + n[1] * 0.7, 0); o.rotation.z = Math.atan2(uB[1], uB[0]); add(o); } // oreja del balancín
-
-  // --- Cucharón: concha curva + placas laterales + dientes, en un grupo orientado pivote → labio ---
-  const C = PIVOTES.cucharon[0], D = PIVOTES.cucharon[1];
-  const cu = new THREE.Group(); add(cu);
-  const ang = Math.atan2(D[1] - C[1], D[0] - C[0]); const Lc = Math.hypot(D[0] - C[0], D[1] - C[1]);
-  cu.position.set(C[0], C[1], 0); cu.rotation.z = ang;
-  const concha = [[0.15, 0.6], [-0.3, 0.25], [-0.42, -0.3], [-0.1, -0.8], [0.6, -1.08], [1.4, -1.12], [Lc, -0.75]]; // camino local de la concha
-  const seg = concha.slice(1).map((q, i) => Math.hypot(q[0] - concha[i][0], q[1] - concha[i][1])); const Lcon = seg.reduce((a, b) => a + b, 0);
-  const enConcha = (t) => { let d = t * Lcon; for (let i = 0; i < seg.length; i++) { if (d <= seg[i] || i === seg.length - 1) { const k = Math.min(1, d / seg[i]); const a = concha[i], b = concha[i + 1]; const tg = [(b[0] - a[0]) / seg[i], (b[1] - a[1]) / seg[i]]; return { p: [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k], tg }; } d -= seg[i]; } };
-  { const m = new THREE.Mesh(vigaGeometria(THREE, enConcha, () => ({ h: 0.16, w: 2.6 }), 40, fea), metal); m.userData.pieza = 'cucharon'; estructura.push(m); cu.add(m); }
-  const lado = new THREE.Shape(); [[0.15, 0.6], [-0.3, 0.25], [-0.42, -0.3], [-0.1, -0.8], [0.6, -1.08], [1.4, -1.12], [Lc, -0.75], [Lc - 0.1, -0.1], [1.3, 0.35]].forEach(([x, y], i) => (i ? lado.lineTo(x, y) : lado.moveTo(x, y)));
-  for (const z of [-1.37, 1.37]) { const g = new THREE.ExtrudeGeometry(lado, { depth: 0.14, bevelEnabled: false }); if (fea) { const n = g.attributes.position.count; const col = new Float32Array(n * 3); for (let i = 0; i < n; i++) { col[i * 3] = 0.11; col[i * 3 + 1] = 0.18; col[i * 3 + 2] = 0.54; } g.setAttribute('color', new THREE.BufferAttribute(col, 3)); } const m = new THREE.Mesh(g, metal); m.position.z = z - 0.07; m.userData.pieza = 'cucharon'; estructura.push(m); cu.add(m); }
-  for (let i = 0; i < 6; i++) { const d = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.6, 4), acero); d.rotation.z = -Math.PI / 2 - 0.25; d.position.set(Lc + 0.22, -0.82, -1.05 + i * 0.42); cu.add(d); }
-  caja(0.5, 0.5, 2.0, carroceria, 0.1, 0.1, 0, cu);           // bujes de pivote
-  caja(0.5, 0.45, 1.2, carroceria, 0.55, 0.55, 0, cu);         // oreja del balancín
+  // --- Piezas estructurales ---
+  for (const pieza of ['boom', 'brazo', 'cucharon']) estructura.push(...construirPieza(THREE, scene, pieza, { fea, mat: M }).estructura);
 
   // --- Cilindros hidráulicos ---
-  for (const z of [-1.05, 1.05]) { const { p, tg } = puntoEnPieza('boom', 0.42); const n = [-tg[1], tg[0]]; hidraulico([2.4, 2.75], [p[0] - n[0] * 0.95, p[1] - n[1] * 0.95], 0.24, z, 0.58); }
-  { const { p } = puntoEnPieza('boom', 0.5); hidraulico([p[0], p[1] + 0.95], atras, 0.22, 0, 0.6); }                       // cilindro del brazo
-  { const m = [B0[0] + uB[0] * 2.9, B0[1] + uB[1] * 2.9]; const n = [-uB[1], uB[0]]; const o = [m[0] + n[0] * 0.75, m[1] + n[1] * 0.75]; hidraulico([B0[0] + uB[0] * 0.35 + n[0] * 0.95, B0[1] + uB[1] * 0.35 + n[1] * 0.95], o, 0.19, 0, 0.58);
-    const lab = [C[0] + Math.cos(ang) * 0.55 - Math.sin(ang) * 0.55, C[1] + Math.sin(ang) * 0.55 + Math.cos(ang) * 0.55]; cil(o, lab, 0.07, acero, 0.35); cil(o, lab, 0.07, acero, -0.35); } // balancín del cucharón
+  const B0 = PIVOTES.brazo[0], B1 = PIVOTES.brazo[1]; const dB = [B1[0] - B0[0], B1[1] - B0[1]]; const LB = Math.hypot(...dB); const uB = [dB[0] / LB, dB[1] / LB]; const nB = [-uB[1], uB[0]];
+  const atras = [B0[0] - uB[0] * 1.25, B0[1] - uB[1] * 1.25];
+  for (const z of [-1.1, 1.1]) { const { p, tg } = puntoEnPieza('boom', 0.42); const n = [-tg[1], tg[0]]; hidraulico([2.4, 2.75], [p[0] - n[0] * 1.15, p[1] - n[1] * 1.15], 0.24, z, 0.58); }
+  { const { p, tg } = puntoEnPieza('boom', 0.5); const n = [-tg[1], tg[0]]; hidraulico([p[0] + n[0] * 1.55, p[1] + n[1] * 1.55], [atras[0] - uB[0] * 0.75 + nB[0] * 1.0, atras[1] - uB[1] * 0.75 + nB[1] * 1.0], 0.22, 0, 0.6); } // cilindro del brazo
+  { const m = [B0[0] + uB[0] * 2.9, B0[1] + uB[1] * 2.9]; const o = [m[0] + nB[0] * 0.95, m[1] + nB[1] * 0.95]; hidraulico([B0[0] + uB[0] * 0.35 + nB[0] * 0.95, B0[1] + uB[1] * 0.35 + nB[1] * 0.95], o, 0.19, 0, 0.58);
+    const C = PIVOTES.cucharon[0]; const ang = Math.atan2(PIVOTES.cucharon[1][1] - C[1], PIVOTES.cucharon[1][0] - C[0]);
+    const lab = [C[0] + Math.cos(ang) * 0.75 - Math.sin(ang) * 0.8, C[1] + Math.sin(ang) * 0.75 + Math.cos(ang) * 0.8]; cil(o, lab, 0.07, acero, 0.35); cil(o, lab, 0.07, acero, -0.35); } // balancín del cucharón
 
   scene.updateMatrixWorld(true);
-  return { estructura, G: PIVOTES, materiales: { metal, acero, oscuro } };
+  return { estructura, G: PIVOTES, materiales: M };
+}
+
+/** Caja envolvente y centro de un conjunto de meshes (coordenadas del mundo). */
+export function envolvente(THREE, meshes) {
+  const box = new THREE.Box3(); for (const m of meshes) box.expandByObject(m);
+  const centro = new THREE.Vector3(); box.getCenter(centro); const tam = new THREE.Vector3(); box.getSize(tam);
+  return { box, centro, tam, radio: tam.length() / 2 };
 }
 
 /** Esferas de los 12 puntos (coloreadas luego por estado). */

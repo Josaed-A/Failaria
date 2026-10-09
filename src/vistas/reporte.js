@@ -26,7 +26,7 @@ export function render(root, app) {
 
   <article class="reporte">
   <div class="panel">
-    <div class="fila entre"><div><h1 style="margin:0">INSPECCIÓN ESTRUCTURAL · PALA ${esc(cfg.equipo.modelo.toUpperCase())}</h1><small>${esc(cfg.equipo.faena)} · Plataforma de integridad estructural</small></div>${estadoHTML(A.estadoEquipo)}</div>
+    <div class="fila entre"><div><h1 style="margin:0">INSPECCIÓN ESTRUCTURAL · PALA ${esc(cfg.equipo.modelo.toUpperCase())}</h1><small>${esc(cfg.equipo.faena)} · Failaria</small></div>${estadoHTML(A.estadoEquipo)}</div>
     <div class="espacio"></div>
     <table><tbody><tr><th>Fecha</th><td>${fFecha(insp.fecha)}</td><th>Equipo</th><td>${esc(eq.id)}</td><th>Horas</th><td>${fNum(insp.horas, 1)} h</td></tr>
       <tr><th>Inspector</th><td>${esc(insp.inspector)}</td><th>Zonas</th><td colspan="3">${Object.keys(cfg.zonas).length} zonas · ${Object.keys(A.puntos).length} puntos</td></tr></tbody></table>
@@ -92,7 +92,7 @@ export function render(root, app) {
   </div>
   <div class="espacio"></div>
   <div class="panel"><div class="rejilla c3" style="margin-top:30px">${['Inspector', 'Supervisor de mantenimiento', 'Ingeniero de confiabilidad'].map((r) => `<div style="border-top:1px solid var(--texto2);padding-top:6px;text-align:center"><small>${r}</small></div>`).join('')}</div>
-    <p class="tenue" style="font-size:.78rem;margin-top:18px">Generado ${fFecha(new Date().toISOString().slice(0, 10))} por la Plataforma de integridad estructural EX3600. Proyecciones con regresión sobre el ciclo actual de cada grieta; fechas estimadas con la utilización histórica.</p></div>
+    <p class="tenue" style="font-size:.78rem;margin-top:18px">Generado ${fFecha(new Date().toISOString().slice(0, 10))} por la Failaria · Plataforma de integridad estructural EX3600. Proyecciones con regresión sobre el ciclo actual de cada grieta; fechas estimadas con la utilización histórica.</p></div>
   </article>`;
 
   root.querySelector('#selF').addEventListener('change', (e) => { fechaSel = e.target.value; app.render(); });

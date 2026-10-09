@@ -1,5 +1,5 @@
 // Planificación y programación de mantenimiento: tablero tipo Trello + calendario de tareas.
-import { COLUMNAS, TIPOS, PRIORIDADES, nuevaTarea, validarTarea, mover, vencida, progreso, sugerir, agenda, porDia, tareasCSV, kpisTareas } from '../tareas.js';
+import { COLUMNAS, TIPOS, PRIORIDADES, nuevaTarea, validarTarea, mover, vencida, progreso, sugerir, agenda, porDia, tareasCSV, kpisTareas, planInicial } from '../tareas.js';
 import { descargar } from '../almacen.js';
 import { esc, fFecha, fNum } from '../ui/formato.js';
 import { info } from '../ui/ayuda.js';
@@ -27,6 +27,7 @@ export function render(root, app) {
       <button class="btn" id="bSugerir" ${sug.length ? '' : 'disabled'} title="${sug.length ? sug.map((t) => t.titulo).join('\\n') : 'No hay sugerencias nuevas'}">Sugerir tareas${sug.length ? ` (${sug.length})` : ''}</button>
       <button class="btn prim" id="bNueva">+ Nueva tarea</button>
       <button class="btn" id="bCsv">CSV</button><button class="btn" id="bPrint">Imprimir</button>
+      <button class="btn chico" id="bReset" title="Vuelve a generar el plan a partir del historial y las recomendaciones vigentes (se pierden las tareas creadas a mano)">Restablecer plan</button>
     </div>
   </div>
   ${ag.vencidas.length ? `<div class="aviso rojo"><b>${ag.vencidas.length} tarea(s) vencida(s):</b> ${ag.vencidas.map((t) => `<a href="#" data-abrir="${t.id}">${esc(t.titulo)}</a> (${fFecha(t.fecha)})`).join(' · ')}</div>` : ''}
@@ -39,6 +40,7 @@ export function render(root, app) {
   $('bSugerir').addEventListener('click', () => { app.store.tareas.push(...sug); guardar(); app.toast(`${sug.length} tarea(s) sugeridas agregadas a «Por planificar».`); app.render(); });
   $('bCsv').addEventListener('click', () => descargar(`EX3600_plan_mantenimiento_${hoy}.csv`, '﻿' + tareasCSV(tareas()), 'text/csv;charset=utf-8'));
   $('bPrint').addEventListener('click', () => window.print());
+  $('bReset').addEventListener('click', () => { if (!confirm('¿Restablecer el plan inicial? Se reemplazarán todas las tareas por las generadas desde el historial y las recomendaciones vigentes.')) return; app.store.tareas = planInicial(A, hoy); app.store.planSembrado = true; guardar(); app.toast('Plan restablecido.'); app.render(); });
   root.querySelectorAll('[data-abrir]').forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); const t = tareas().find((x) => x.id === a.dataset.abrir); if (t) editar(t); }));
 
   // ---------- Tarjeta ----------

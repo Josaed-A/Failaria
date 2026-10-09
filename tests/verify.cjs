@@ -142,6 +142,18 @@ const cerca = (a, b, tol) => Math.abs(a - b) <= tol;
   check('CSV con cabecera y una fila por tarea', T.tareasCSV(sug).split('\r\n').length === sug.length + 1);
   check('KPIs del tablero', T.kpisTareas([t1, t2], '2025-12-01').vencidas === 1 && T.kpisTareas([t1, t2], '2025-12-01').hechas === 1);
 
+  console.log('\nLupa de grieta y plan inicial');
+  check('Campo de Irwin: máximo en la punta, decae con 1/√r, nulo detrás de la grieta (θ = π)', F.tensionLocal(0.001, 0, 1) === 1 && F.tensionLocal(1, 0, 1) < F.tensionLocal(0.25, 0, 1) && cerca(F.tensionLocal(0.25, 0, 1) / F.tensionLocal(1, 0, 1), 2, 1e-9) && F.tensionLocal(0.5, Math.PI, 1) === 0);
+  check('Zona plástica crece con Kr² y se acota', cerca(F.zonaPlastica(0.5), 0.03, 1e-9) && F.zonaPlastica(3) === 0.6);
+  const evL = F.evolucionLocal(M, 410, 750, 0.5);
+  check('Evolución local: con carga crece más que sin carga y acorta la vida', evL.conCarga > evL.sinCarga && evL.sinCarga > 410 && evL.horasFalla < F.horasHasta(M, 410, 960));
+  const plan = T.planInicial(A, '2026-10-08');
+  const hechas = plan.filter((t) => t.estado === 'hecha');
+  check('Plan inicial: reparaciones y cambios del historial como tareas hechas (parada 2024-03-01 con 6 puntos)', hechas.length >= 6 && hechas.some((t) => t.tipo === 'parada' && t.fecha === '2024-03-01' && t.checklist.length >= 2) && hechas.some((t) => t.tipo === 'cambio'), hechas.map((t) => t.fecha + ':' + t.tipo));
+  check('Plan inicial: parada, reparación de BR-01 e inspección periódica programadas con responsable', ['parada', 'reparacion'].every((tipo) => plan.some((t) => t.tipo === tipo && t.estado === 'programada' && t.responsable)) && plan.some((t) => t.clave === 'inspeccion-periodica' && t.estado === 'programada'));
+  check('Plan inicial: revisión de soldadura y datos sospechosos en ejecución; nada en el pasado salvo lo hecho', plan.filter((t) => t.estado === 'ejecucion').length === 2 && plan.every((t) => t.estado === 'hecha' || !t.fecha || t.fecha >= '2026-10-08'));
+  check('Plan inicial: claves únicas', new Set(plan.map((t) => t.clave)).size === plan.length);
+
   console.log('\nDecisiones del usuario y registro nuevo');
   const dec = { [D.idMedicion('3600-01', '2025-04-22', 'CU-01')]: { accion: 'corregir', valor: 101 }, [D.idMedicion('3600-01', '2025-04-22', 'CU-02')]: { accion: 'descartar' } };
   const A2 = R.analizar(modelo, CONFIG, dec);

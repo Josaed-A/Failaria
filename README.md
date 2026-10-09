@@ -1,4 +1,4 @@
-# Failaria · Plataforma de integridad estructural de la pala Hitachi EX3600
+# Failaria · Integridad estructural de la pala Hitachi EX3600
 
 Taller en Énfasis II — Gestión de Mantenimiento · Grupo 5
 
@@ -48,11 +48,12 @@ Cada vista muestra solo lo necesario para decidir. Las explicaciones (reglas, su
 - **Mantener pulsado sobre el boom, brazo o cucharón y arrastrar** aplica un sobreesfuerzo: la cámara queda fija, aparece la flecha, los puntos cercanos crecen `(1+s)^m` veces más rápido y la zona queda con daño permanente. Un punto sano puede iniciar grieta.
 - Panel: pieza en riesgo por zona, tabla por gravedad y modo de falla, diagrama FAD y eventos.
 - **Reporte de esfuerzo y falla:** horas sobrecargado, sobreesfuerzo medio y máximo, dosis de daño y mm de crecimiento por tiempo frente a sobrecarga. Al fallar indica la causa: *por horas de uso*, *fatiga acelerada por sobrecargas* o *fractura por fuerza excesiva* (súbita, al cruzar el FAD).
-- Modelo 3D paramétrico de la EX3600: boom curvo y brazo ahusados, cucharón con concha curva, cilindros con vástago, tren de rodaje con zapatas.
+- Modelo 3D paramétrico de la EX3600 según los esquemas de inspección: boom curvo con pie bifurcado y soportes de cilindros, brazo ahusado con orejas en abanico, cucharón con rejillas de desgaste y bujes, cilindros con vástago, tren de rodaje con zapatas.
+- **Modo por pieza** (General · Boom · Brazo · Cucharón) con panel de inspección punto a punto y **lupa de grieta**: vista cercana con el campo de tensión, la zona plástica y la evolución prevista con y sin esfuerzo; arrastrar sobre la lupa carga solo ese punto.
 
 ## Planificación de mantenimiento
 
-La vista **Plan** lleva a la práctica lo que la plataforma recomienda: «Sugerir tareas» crea tarjetas desde la próxima parada, el plan priorizado y las alertas (reparación con pasos de soldadura y NDT, inspección adicional, re-medición, fotos, inspección periódica). Tablero con arrastrar y soltar o flechas, calendario mensual, lista imprimible, responsable, horómetro previsto, pasos de verificación y exportación CSV. Las tareas vencidas se marcan y aparecen en el reporte.
+La vista **Plan** arranca con un plan inicial construido desde el historial (reparaciones y cambios registrados como tareas hechas, recomendaciones vigentes programadas con responsable, revisión de soldadura y datos sospechosos en ejecución) y lleva a la práctica lo que la plataforma recomienda: «Sugerir tareas» crea tarjetas desde la próxima parada, el plan priorizado y las alertas (reparación con pasos de soldadura y NDT, inspección adicional, re-medición, fotos, inspección periódica). Tablero con arrastrar y soltar o flechas, calendario mensual, lista imprimible, responsable, horómetro previsto, pasos de verificación y exportación CSV. Las tareas vencidas se marcan y aparecen en el reporte.
 
 Uso detallado: [docs/SIMULADOR.md](docs/SIMULADOR.md). Fundamentos (supervisión de grietas, Paris, FAD, límites): [docs/MANTENIMIENTO_Y_FALLA.md](docs/MANTENIMIENTO_Y_FALLA.md).
 

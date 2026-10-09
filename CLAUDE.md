@@ -27,8 +27,9 @@ src/tareas.js         planificación: sugerencias desde el análisis, columnas, 
 src/almacen.js        localStorage, merge de inspecciones nuevas, export/import
 src/vistas/*.js       flota, equipo, simulador, planificacion (tablero/calendario), zona, punto, registrar, historial, alertas, calidad, reporte, ia
 src/ui/ayuda.js       icono ⓘ: info(html) devuelve el botón; el texto didáctico va aquí, no en la vista
-src/ui/pala3d.js      pala paramétrica (vigas lofteadas: puntoEnPieza/PERFIL/posicionPunto; construirPala, crearEsferas, escenaBase)
-src/ui/simulador3d.js mapa de daño FEA por vértice, grietas a escala, tirar con el mouse
+src/ui/pala3d.js      pala paramétrica: construirPieza(boom|brazo|cucharon) según assets/esquemas, construirPala, crearEsferas, escenaBase
+src/ui/simulador3d.js mapa de daño FEA por vértice, grietas a escala, tirar con el mouse, modo pieza (op.pieza) y enfocar()
+src/ui/lupa.js        lupa de grieta 2D (campo de Irwin, zona plástica, evolución con/sin carga, arrastrar = esfuerzo)
 assets/esquemas|fotos imágenes referenciadas por la columna "Imagen" del Excel
 data/                 Excel original (fuente de verdad; NO editarlo)
 tests/verify.cjs      verificación de reglas.js con node (sin dependencias)
@@ -38,6 +39,8 @@ tests/verify.cjs      verificación de reglas.js con node (sin dependencias)
 - `reglas.js`, `datos.js`, `falla.js` y `tareas.js` no tocan el DOM: así se prueban con `node tests/verify.cjs`. Correr tests tras cada cambio en lógica.
 - **Poco texto en pantalla**: títulos y datos a la vista; explicaciones, reglas y supuestos dentro de `info('…')` (ⓘ). No volver a poner párrafos explicativos en las vistas.
 - Cuidado con el nombre `info`: no declarar variables locales con ese nombre en las vistas (sombrea la importación).
+- Nombre de la plataforma en la interfaz: **Failaria** (subtítulo «Integridad estructural · Pala Hitachi EX3600»).
+- El plan de mantenimiento se siembra una vez desde el historial (`tareas.planInicial`, flag `store.planSembrado`).
 - Prueba visual: `python -m http.server 8765` + Playwright (chromium headless con `--use-angle=swiftshader`) recorre las rutas y comprueba 0 errores de consola.
 - Nunca convertir celda vacía en 0: vacío = **N/I**. 0 = sin grieta detectable.
 - Umbrales siempre desde la hoja `Puntos`, nunca hardcodeados.

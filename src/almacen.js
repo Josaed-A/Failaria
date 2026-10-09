@@ -8,6 +8,7 @@ const vacio = () => ({
   decisiones: {},                               // idMedicion → { accion: 'aceptar'|'descartar'|'corregir', valor, fecha }
   ia: null,                                     // último diagnóstico IA { texto, fecha, modelo }
   tareas: [],                                   // planificación de mantenimiento (tablero/calendario)
+  planSembrado: false,                          // true cuando ya se generó el plan inicial desde el historial
 });
 
 export function cargar(clave) {

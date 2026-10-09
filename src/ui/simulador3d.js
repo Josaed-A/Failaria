@@ -1,7 +1,7 @@
 // Visor 3D del simulador de falla: mapa de daño tipo FEA (colores por vértice), grietas a escala
 // real sobre la estructura y «tirar» con el mouse para aplicar un sobreesfuerzo local.
 import { COLOR, fMm } from './formato.js';
-import { construirPala, crearEsferas, escenaBase } from './pala3d.js';
+import { construirPala, construirPieza, crearEsferas, envolvente, escenaBase } from './pala3d.js';
 
 // Rampa de color tipo FEA: azul (sin daño) → cian → verde → amarillo → naranja → rojo (crítico).
 const RAMPA = [[0, 0x1b2f8a], [0.2, 0x1ea7d8], [0.4, 0x2ec46a], [0.6, 0xf2d23a], [0.8, 0xff7a1a], [1, 0xd61f1f]].map(([t, c]) => [t, [(c >> 16) / 255, ((c >> 8) & 255) / 255, (c & 255) / 255]]);
@@ -15,14 +15,25 @@ function colorFEA(v, out, i) {
 /**
  * @param {HTMLElement} cont
  * @param {object} A análisis del equipo
- * @param {{radio:number, sMax:number, pxPorS:number, onClick?:(codigo)=>void}} op
+ * @param {{radio:number, sMax:number, pxPorS:number, pieza?:'general'|'boom'|'brazo'|'cucharon', onClick?:(codigo)=>void}} op
  */
 export async function crearSimulador3D(cont, A, op = {}) {
   const THREE = await import('three');
   const { OrbitControls } = await import('../../vendor/OrbitControls.js');
+  const pieza = op.pieza && op.pieza !== 'general' ? op.pieza : null;
   const { renderer, scene, cam, ctrl, ro } = escenaBase(THREE, OrbitControls, cont, { camara: [14, 9, 24] });
-  const pala = construirPala(THREE, scene, { fea: true });
-  const esferas = crearEsferas(THREE, scene, A);
+  const pala = pieza ? construirPieza(THREE, scene, pieza, { fea: true }) : construirPala(THREE, scene, { fea: true });
+  const esferas = crearEsferas(THREE, scene, A).filter((e) => !pieza || e.pieza === pieza);
+  // Modo pieza: encuadrar la pieza sola (sin piso) y una rejilla tenue debajo.
+  const env = envolvente(THREE, pala.estructura);
+  if (pieza) {
+    for (const e of crearEsferas(THREE, new THREE.Group(), A)) { /* no-op: esferas ya filtradas */ }
+    const grid = new THREE.GridHelper(Math.ceil(env.radio * 3), Math.ceil(env.radio * 3), 0x2a3850, 0x1f2a3d); grid.position.set(env.centro.x, env.box.min.y - 0.4, env.centro.z); scene.add(grid);
+    ctrl.target.copy(env.centro); ctrl.minDistance = 1.5; ctrl.maxDistance = env.radio * 6; ctrl.maxPolarAngle = Math.PI;
+    cam.position.copy(env.centro).add(new THREE.Vector3(0.55, 0.5, 1).normalize().multiplyScalar(env.radio * 2.4)); ctrl.update();
+  }
+  // Enfoque suave hacia un punto (cámara y objetivo interpolados en el bucle).
+  let enfoque = null;
   const radio = op.radio ?? 1.6; const sMax = op.sMax ?? 2; const pxPorS = op.pxPorS ?? 220;
 
   // Posiciones de vértices en coordenadas del mundo + daño permanente acumulado por el mouse.
@@ -150,6 +161,7 @@ export async function crearSimulador3D(cont, A, op = {}) {
     const now = performance.now(); const dt = Math.min(0.1, (now - tPrev) / 1000); tPrev = now; const t = (now - t0) / 1000;
     for (const e of esferas) if (e.halo.visible) { const k = 1 + ((t * (e.fallado ? 2.4 : e.estado === 'Crítico' ? 1.6 : 0.9)) % 1) * 1.6; e.halo.scale.setScalar(k); e.halo.material.opacity = 0.35 * (1 - (k - 1) / 1.6); }
     if (estado.carga.s > 0) pintar(dt);
+    if (enfoque) { const k = Math.min(1, dt * 4); ctrl.target.lerp(enfoque.objetivo, k); cam.position.lerp(enfoque.camara, k); if (cam.position.distanceTo(enfoque.camara) < 0.05) enfoque = null; }
     ctrl.update(); renderer.render(scene, cam);
     requestAnimationFrame(loop);
   })();
@@ -163,6 +175,14 @@ export async function crearSimulador3D(cont, A, op = {}) {
       return { s: c.s, pieza: c.pieza, distancias };
     },
     tirar(on) { tirarActivo = on; if (!on) soltar(); },
+    /** Lleva la cámara a un punto (distancia en m) o, sin código, al encuadre general. */
+    enfocar(codigo, distancia = 4.5) {
+      const e = esferas.find((x) => x.codigo === codigo);
+      if (!e) { enfoque = { objetivo: env.centro.clone(), camara: env.centro.clone().add(new THREE.Vector3(0.55, 0.5, 1).normalize().multiplyScalar(pieza ? env.radio * 2.4 : 30)) }; return; }
+      const dir = new THREE.Vector3(e.cara === 'lado' ? 0.35 : 0.6, e.cara === 'abajo' ? -0.6 : 0.55, e.cara === 'lado' ? Math.sign(e.pos.z || 1) * 1 : 0.7).normalize();
+      enfoque = { objetivo: e.pos.clone(), camara: e.pos.clone().add(dir.multiplyScalar(distancia)) };
+    },
+    puntos: esferas.map((e) => e.codigo),
     limpiarDano() { for (const M of mallas) M.dano.fill(0); pintar(); },
     destruir() { vivo = false; ro.disconnect(); ctrl.dispose(); renderer.dispose(); scene.traverse((o) => { o.geometry?.dispose?.(); o.material?.map?.dispose?.(); o.material?.dispose?.(); }); cont.innerHTML = ''; },
   };
