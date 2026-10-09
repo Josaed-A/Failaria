@@ -278,18 +278,18 @@ export function envolvente(THREE, meshes) {
 }
 
 /** Esferas de los 12 puntos (coloreadas luego por estado). */
-export function crearEsferas(THREE, scene, A) {
-  const esferas = [];
+export function crearEsferas(THREE, scene, A, op = {}) {
+  const esferas = []; const r = op.radio ?? 0.3;
   for (const a of Object.values(A.puntos)) {
     const pc = a.punto.pos3d || A.cfg.pos3d[a.codigo];
-    if (!pc) continue;
+    if (!pc || (op.pieza && pc.pieza !== op.pieza)) continue;
     const pos = posicionPunto(THREE, pc);
     const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x000000, roughness: 0.3, metalness: 0.1 });
-    const m = new THREE.Mesh(new THREE.SphereGeometry(0.3, 24, 16), mat);
+    const m = new THREE.Mesh(new THREE.SphereGeometry(r, 24, 16), mat);
     m.position.copy(pos); m.userData = { codigo: a.codigo }; scene.add(m);
-    const halo = new THREE.Mesh(new THREE.SphereGeometry(0.3, 20, 12), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.25, depthWrite: false }));
+    const halo = new THREE.Mesh(new THREE.SphereGeometry(r, 20, 12), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.25, depthWrite: false }));
     halo.position.copy(pos); scene.add(halo);
-    const et = etiquetaSprite(THREE, a.codigo); et.position.copy(pos).add(new THREE.Vector3(0, 0.7, 0)); scene.add(et);
+    const et = etiquetaSprite(THREE, a.codigo); et.position.copy(pos).add(new THREE.Vector3(0, r * 2.3, 0)); if (op.pieza) et.scale.multiplyScalar(0.75); scene.add(et);
     esferas.push({ m, halo, et, codigo: a.codigo, estado: a.estadoActual, pos, pieza: pc.pieza, cara: pos.cara, angulo: pos.angulo });
   }
   return esferas;

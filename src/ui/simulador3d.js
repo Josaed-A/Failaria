@@ -23,14 +23,16 @@ export async function crearSimulador3D(cont, A, op = {}) {
   const pieza = op.pieza && op.pieza !== 'general' ? op.pieza : null;
   const { renderer, scene, cam, ctrl, ro } = escenaBase(THREE, OrbitControls, cont, { camara: [14, 9, 24] });
   const pala = pieza ? construirPieza(THREE, scene, pieza, { fea: true }) : construirPala(THREE, scene, { fea: true });
-  const esferas = crearEsferas(THREE, scene, A).filter((e) => !pieza || e.pieza === pieza);
+  const esferas = crearEsferas(THREE, scene, A, pieza ? { pieza, radio: 0.24 } : {});
   // Modo pieza: encuadrar la pieza sola (sin piso) y una rejilla tenue debajo.
   const env = envolvente(THREE, pala.estructura);
+  const DIR = { boom: [0.35, 0.5, 1], brazo: [1, 0.35, 0.9], cucharon: [1, 0.7, 0.9] };
+  const dirGeneral = () => new THREE.Vector3(...(DIR[pieza] || [0.55, 0.5, 1])).normalize();
+  const distGeneral = () => (pieza ? (env.radio * 1.1) / Math.sin((cam.fov * Math.PI) / 360) * Math.max(1, (cam.aspect < 1 ? 1 / cam.aspect : 1)) : 30);
   if (pieza) {
-    for (const e of crearEsferas(THREE, new THREE.Group(), A)) { /* no-op: esferas ya filtradas */ }
     const grid = new THREE.GridHelper(Math.ceil(env.radio * 3), Math.ceil(env.radio * 3), 0x2a3850, 0x1f2a3d); grid.position.set(env.centro.x, env.box.min.y - 0.4, env.centro.z); scene.add(grid);
     ctrl.target.copy(env.centro); ctrl.minDistance = 1.5; ctrl.maxDistance = env.radio * 6; ctrl.maxPolarAngle = Math.PI;
-    cam.position.copy(env.centro).add(new THREE.Vector3(0.55, 0.5, 1).normalize().multiplyScalar(env.radio * 2.4)); ctrl.update();
+    cam.position.copy(env.centro).add(dirGeneral().multiplyScalar(distGeneral())); ctrl.update();
   }
   // Enfoque suave hacia un punto (cámara y objetivo interpolados en el bucle).
   let enfoque = null;
@@ -178,7 +180,7 @@ export async function crearSimulador3D(cont, A, op = {}) {
     /** Lleva la cámara a un punto (distancia en m) o, sin código, al encuadre general. */
     enfocar(codigo, distancia = 4.5) {
       const e = esferas.find((x) => x.codigo === codigo);
-      if (!e) { enfoque = { objetivo: env.centro.clone(), camara: env.centro.clone().add(new THREE.Vector3(0.55, 0.5, 1).normalize().multiplyScalar(pieza ? env.radio * 2.4 : 30)) }; return; }
+      if (!e) { enfoque = { objetivo: pieza ? env.centro.clone() : new THREE.Vector3(5.5, 4, 0), camara: (pieza ? env.centro.clone() : new THREE.Vector3(5.5, 4, 0)).add(dirGeneral().multiplyScalar(distGeneral())) }; return; }
       const dir = new THREE.Vector3(e.cara === 'lado' ? 0.35 : 0.6, e.cara === 'abajo' ? -0.6 : 0.55, e.cara === 'lado' ? Math.sign(e.pos.z || 1) * 1 : 0.7).normalize();
       enfoque = { objetivo: e.pos.clone(), camara: e.pos.clone().add(dir.multiplyScalar(distancia)) };
     },
