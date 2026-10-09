@@ -31,7 +31,7 @@ export function render(root, app) {
   <div class="rejilla c-3-2">
     <div class="panel">
       <div class="fila entre"><h2 style="margin:0">Modelo 3D · estado por punto ${info('Clic en una esfera abre el punto. Arrastre para girar y rueda para acercar. Con el control «¿qué pasa si?» las esferas toman el estado proyectado.')}</h2><span class="tenue" id="simEtq"></span></div>
-      <div class="pala3d" id="p3d"><div class="cargando" style="padding-top:150px">Cargando modelo 3D…</div><div class="ayuda">EX3600 · modelo esquemático</div></div>
+      <div class="pala3d" id="p3d"><div class="cargando" style="padding-top:150px">Cargando modelo 3D…</div><div class="ayuda">EX3600 · modelo paramétrico según los esquemas de inspección</div></div>
       <div class="leyenda">${['Normal', 'Alerta', 'Crítico', 'N/I'].map((e) => `<span><i style="background:${COLOR[e]}"></i>${e}</span>`).join('')}</div>
     </div>
     <div class="panel">
