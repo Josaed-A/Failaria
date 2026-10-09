@@ -3,9 +3,9 @@
 //
 //   node herramientas/empaquetar.mjs
 //
-// Salida (carpeta dist/, ignorada por git):
-//   dist/Failaria.html          plataforma completa en un archivo (código, librerías, estilos, Excel e imágenes)
-//   dist/Failaria_entrega.zip   Failaria.html + LEEME.txt, para adjuntar donde no se aceptan .html
+// Salida:
+//   Failaria.html               (raíz del repo, versionado) plataforma completa en un archivo: código, librerías, estilos, Excel e imágenes
+//   dist/Failaria_entrega.zip   (ignorado por git) Failaria.html + LEEME.txt, para adjuntar donde no se aceptan .html
 //
 // Cómo funciona: los módulos ES no cargan desde file://, así que src/app.js se agrupa con esbuild
 // en un script clásico (IIFE) y se incrusta en el HTML junto con vendor/ y src/estilos.css.
@@ -128,13 +128,13 @@ const bundle = agrupar();
 const mapa = recursos();
 const { html, version } = construirHTML(bundle, mapa);
 mkdirSync(DIST, { recursive: true });
-writeFileSync(join(DIST, 'Failaria.html'), html);
+writeFileSync(join(RAIZ, 'Failaria.html'), html);
 writeFileSync(join(DIST, 'Failaria_entrega.zip'), zip([
   { nombre: 'Failaria/Failaria.html', datos: Buffer.from(html, 'utf8') },
   { nombre: 'Failaria/LEEME.txt', datos: Buffer.from(LEEME().replace(/\n/g, '\r\n'), 'utf8') },
 ]));
-const mb = (p) => (statSync(join(DIST, p)).size / 1048576).toFixed(1) + ' MB';
+const mb = (p) => (statSync(join(RAIZ, p)).size / 1048576).toFixed(1) + ' MB';
 console.log(`Versión ${version}: ${Object.keys(mapa).length} recursos embebidos.`);
-console.log(`  dist/Failaria.html          ${mb('Failaria.html')}`);
-console.log(`  dist/Failaria_entrega.zip   ${mb('Failaria_entrega.zip')}`);
+console.log(`  Failaria.html               ${mb('Failaria.html')}`);
+console.log(`  dist/Failaria_entrega.zip   ${mb('dist/Failaria_entrega.zip')}`);
 console.log(`Listo en ${((Date.now() - t0) / 1000).toFixed(1)} s.`);

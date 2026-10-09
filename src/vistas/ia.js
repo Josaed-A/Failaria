@@ -12,7 +12,7 @@ export function render(root, app) {
   let foco = '';
   const prompt = () => construirPrompt(A, foco);
   const guardada = leerPref(CLAVE_PREF, '');
-  const ia = app.store.ia;
+  const ia = app.diagnosticoIA();
 
   root.innerHTML = `
   <div class="cabecera"><div><h1>Análisis con IA ${info('<p>La plataforma arma un <b>prompt estructurado</b> con el estado calculado del equipo (JSON compacto: puntos, tendencias, horas hasta umbral, alertas, parada, calidad de datos, KPIs).</p><p><b>Opción A:</b> copiarlo en Copilot o Claude y pegar la respuesta. <b>Opción B:</b> llamar a la API de Claude con su clave; la solicitud va directo del navegador a api.anthropic.com y la clave solo se guarda en este navegador si lo marca.</p><p>El diagnóstico se guarda y aparece en el Reporte. La IA apoya el análisis; las alertas y el plan son reglas deterministas y la decisión es del ingeniero.</p>')}</h1></div></div>
@@ -62,7 +62,7 @@ export function render(root, app) {
     if (!t) { app.toast('Pegue primero la respuesta del asistente.', true); return; }
     guardarDiag({ texto: t, fecha: new Date().toISOString(), origen: 'Asistente externo (copiar/pegar)', datosHasta: A.ultimaInsp.fecha });
   });
-  $('bBorrar')?.addEventListener('click', () => { if (confirm('¿Borrar el diagnóstico IA guardado?')) guardarDiag(null); });
+  $('bBorrar')?.addEventListener('click', () => { if (confirm(ia?.defecto ? '¿Ocultar el diagnóstico incluido en la plataforma?' : '¿Borrar el diagnóstico IA guardado?')) guardarDiag(false); });
 
   let ctrl = null;
   app.alLimpiar(() => ctrl?.abort());

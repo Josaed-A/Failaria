@@ -28,10 +28,10 @@ node herramientas/empaquetar.mjs
 
 | Archivo generado | Contenido |
 |---|---|
-| `dist/Failaria.html` | La plataforma completa en un archivo (≈ 6 MB) |
-| `dist/Failaria_entrega.zip` | `Failaria.html` + `LEEME.txt`, para plataformas o correos que no aceptan `.html` |
+| `Failaria.html` | La plataforma completa en un archivo (≈ 6 MB), en la raíz del repositorio |
+| `dist/Failaria_entrega.zip` | `Failaria.html` + `LEEME.txt`, para plataformas o correos que no aceptan `.html`; no se versiona |
 
-Requiere Node 18 o superior. La primera vez necesita internet, porque `npx` descarga esbuild para agrupar el código. La plataforma en sí no usa npm. Detalle, verificación y opciones de publicación en [docs/ENTREGA.md](docs/ENTREGA.md).
+Requiere Node 18 o superior. La primera vez necesita internet, porque `npx` descarga esbuild para agrupar el código. La plataforma en sí no usa npm. Hay que regenerar el archivo después de cada cambio. Para entregar en Teams o en el aula virtual se adjunta `Failaria.html` o el ZIP, no el link del repositorio. Detalle, verificación y opciones de publicación en [docs/ENTREGA.md](docs/ENTREGA.md).
 
 ## Cómo está pensada la interfaz
 
@@ -52,7 +52,7 @@ Cada vista muestra solo lo necesario para decidir. Las explicaciones (reglas, su
 | **Historial** | Consulta y exportación | Filtros, Excel/CSV/JSON |
 | **Calidad de datos** | ¿Qué datos de campo no son confiables? | Marcados, no borrados; el usuario decide |
 | **Reporte** | PDF en el orden del formato | Resumen, plan, zonas, alertas, diagnóstico IA |
-| **IA** | Diagnóstico asistido | Prompt estructurado o llamada a la API de Claude |
+| **IA** | Diagnóstico asistido | Diagnóstico incluido, prompt estructurado o llamada a la API de Claude |
 
 ## Galería
 
@@ -78,7 +78,7 @@ Cada vista muestra solo lo necesario para decidir. Las explicaciones (reglas, su
 
 ## Planificación de mantenimiento
 
-La vista **Plan** arranca con un plan inicial construido desde el historial (reparaciones y cambios registrados como tareas hechas, recomendaciones vigentes programadas con responsable, revisión de soldadura y datos sospechosos en ejecución) y lleva a la práctica lo que la plataforma recomienda: «Sugerir tareas» crea tarjetas desde la próxima parada, el plan priorizado y las alertas (reparación con pasos de soldadura y NDT, inspección adicional, re-medición, fotos, inspección periódica). Tablero con arrastrar y soltar o flechas, calendario mensual, lista imprimible, responsable, horómetro previsto, pasos de verificación y exportación CSV. Las tareas vencidas se marcan y aparecen en el reporte.
+La vista **Plan** arranca con un plan inicial construido desde el historial (reparaciones y cambios registrados como tareas hechas, recomendaciones vigentes programadas con responsable, revisión de soldadura y datos sospechosos en ejecución) y lleva a la práctica lo que la plataforma recomienda: «Sugerir tareas» crea tarjetas desde la próxima parada, el plan priorizado y las alertas (reparación con pasos de soldadura y NDT, inspección adicional, re-medición, fotos, inspección periódica). Tablero con arrastrar y soltar o flechas, calendario mensual, lista imprimible, responsable, horómetro previsto, pasos de verificación y exportación CSV. Las fechas salen de las horas proyectadas, igual que la próxima parada de la vista Equipo; si una fecha ya pasó, la tarea queda vencida en vez de moverse a hoy. Las tareas vencidas se marcan y aparecen en el reporte.
 
 Uso detallado: [docs/SIMULADOR.md](docs/SIMULADOR.md). Fundamentos (supervisión de grietas, Paris, FAD, límites): [docs/MANTENIMIENTO_Y_FALLA.md](docs/MANTENIMIENTO_Y_FALLA.md).
 
@@ -110,23 +110,24 @@ src/reglas.js         estado, ciclos, tasas, proyección, alertas, plan, KPIs   
 src/falla.js          ley de Paris, longitud crítica, modos, FAD, simulación, causa de falla (sin DOM)
 src/tareas.js         planificación: sugerencias, tablero, agenda, CSV                   (sin DOM)
 src/almacen.js        localStorage, respaldo JSON, fotos
-src/ia.js             prompt estructurado + API de Claude
+src/ia.js             prompt estructurado + API de Claude  ·  src/diagnostico_ia.js  diagnóstico IA incluido
 src/vistas/*.js       flota, equipo, simulador, planificacion, zona, punto, registrar, historial, alertas, calidad, reporte, ia
 src/ui/ayuda.js       icono ⓘ con información adicional
 src/ui/pala3d.js      pala 3D paramétrica (vigas lofteadas)  ·  src/ui/simulador3d.js  mapa FEA + tirar con el mouse
 src/ui/grafico.js     Chart.js  ·  src/ui/esquema.js  esquemas con hotspots
 src/ui/lupa.js        lupa de grieta  ·  src/ui/formato.js  formatos y recurso(): rutas de imágenes y Excel
 vendor/               SheetJS, Chart.js + annotation, Three.js, OrbitControls (versiones fijas)
-herramientas/         empaquetar.mjs: genera la versión entregable en un solo archivo (dist/, ignorada por git)
+herramientas/         empaquetar.mjs: genera la versión entregable Failaria.html (raíz) y el ZIP (dist/, ignorada por git)
+Failaria.html         versión entregable generada; no editar a mano
 docs/                 README (índice), ENTREGA, MANTENIMIENTO_Y_FALLA, SIMULADOR, USO_IA, historial/, referencia/, capturas/
-tests/verify.cjs      93 verificaciones de datos.js, reglas.js, falla.js y tareas.js
+tests/verify.cjs      95 verificaciones de datos.js, reglas.js, falla.js, tareas.js y del diagnóstico incluido
 ```
 
 ## Verificación
 
 ```bash
-node tests/verify.cjs              # lógica: 93 verificaciones
-node herramientas/empaquetar.mjs   # versión entregable en dist/
+node tests/verify.cjs              # lógica: 95 verificaciones
+node herramientas/empaquetar.mjs   # versión entregable: Failaria.html y dist/Failaria_entrega.zip
 ```
 
 La versión entregable se probó abriéndola como archivo local en Chromium, sin carpetas al lado: todas las vistas cargan con datos, imágenes y 3D, sin errores de consola.

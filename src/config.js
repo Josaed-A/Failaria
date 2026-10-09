@@ -31,10 +31,11 @@ export const CONFIG = {
 
   // Ubicación de cada punto sobre su esquema (fracción del ancho/alto de la imagen),
   // tomada de la punta de la flecha rotulada en assets/esquemas.
+  // etq (opcional): lado de la etiqueta respecto del punto (izq | der | arriba); por defecto debajo.
   hotspots: {
     'BM-01': { x: 0.420, y: 0.672 },
     'BM-02': { x: 0.700, y: 0.212 },
-    'BM-03': { x: 0.602, y: 0.215 },
+    'BM-03': { x: 0.602, y: 0.215, etq: 'izq' }, // etiqueta a la izquierda: BM-02 está a la misma altura
     'BM-04': { x: 0.235, y: 0.588 },
     'BR-01': { x: 0.375, y: 0.322 },
     'BR-02': { x: 0.221, y: 0.246 },

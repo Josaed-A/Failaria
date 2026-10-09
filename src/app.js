@@ -19,6 +19,7 @@ import * as vSimulador from './vistas/simulador.js';
 import * as vPlan from './vistas/planificacion.js';
 import { kpisTareas, planInicial } from './tareas.js';
 import { activarInfo } from './ui/ayuda.js';
+import { DIAGNOSTICO_DEFECTO } from './diagnostico_ia.js';
 
 window.__appLista = true;
 
@@ -92,6 +93,13 @@ export const app = {
     this.toast('Se usa nuevamente el Excel original.');
   },
   pedirExcel() { document.getElementById('archivoExcel').click(); },
+  // Diagnóstico IA vigente: el guardado por el usuario; si no hay (null), el incluido en la plataforma
+  // mientras se use el Excel original; false = el usuario lo borró.
+  diagnosticoIA() {
+    const ia = this.store?.ia;
+    if (ia) return ia;
+    return ia === false || this.store?.base ? null : DIAGNOSTICO_DEFECTO;
+  },
 };
 window.app = app; // útil para depurar desde la consola
 

@@ -60,8 +60,9 @@ export function sugerir(A, existentes = [], hoyReal = null) {
   const claves = new Set(existentes.map((t) => t.clave).filter(Boolean));
   const out = [];
   const hoy = hoyReal && hoyReal > A.ultimaInsp.fecha ? hoyReal : A.ultimaInsp.fecha;
-  // Una fecha calculada en el pasado se trae a hoy: no se puede programar hacia atrás.
-  const add = (t) => { if (!claves.has(t.clave)) { if (t.fecha && t.fecha < hoy) t.fecha = hoy; out.push(nuevaTarea({ origen: 'auto', ...t })); claves.add(t.clave); } };
+  // Las fechas salen de las horas proyectadas con la utilización histórica (misma regla que Equipo y Alertas).
+  // Si una fecha calculada ya pasó, se conserva: la tarea queda vencida en vez de moverse a hoy y perder el plazo.
+  const add = (t) => { if (!claves.has(t.clave)) { out.push(nuevaTarea({ origen: 'auto', ...t })); claves.add(t.clave); } };
   const fechaInsp = A.fechaDeHoras(A.horasActuales + A.intervalo);
 
   if (A.parada.requerida) {

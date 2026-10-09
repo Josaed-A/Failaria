@@ -45,7 +45,7 @@
       if (!window.__appLista) {
         var c = document.getElementById('cargando');
         if (c) c.innerHTML = location.protocol === 'file:'
-          ? '<h2>Este archivo es el código fuente</h2><p>Los navegadores bloquean los módulos JavaScript al abrir <code>index.html</code> como archivo. Opciones:</p><ol><li><b>Versión entregable:</b> abra <code>Failaria.html</code> (un solo archivo, funciona con doble clic). Se genera con <code>node herramientas/empaquetar.mjs</code> en <code>dist/</code>.</li><li>Doble clic en <b>iniciar.bat</b> (Windows) o ejecute <code>python -m http.server 8000</code> en esta carpeta y abra <a href="http://localhost:8000">http://localhost:8000</a>.</li></ol>'
+          ? '<h2>Este archivo es el código fuente</h2><p>Los navegadores bloquean los módulos JavaScript al abrir <code>index.html</code> como archivo. Opciones:</p><ol><li><b>Versión entregable:</b> abra <code>Failaria.html</code> (un solo archivo, funciona con doble clic). Está en la raíz del repositorio y se genera con <code>node herramientas/empaquetar.mjs</code>.</li><li>Doble clic en <b>iniciar.bat</b> (Windows) o ejecute <code>python -m http.server 8000</code> en esta carpeta y abra <a href="http://localhost:8000">http://localhost:8000</a>.</li></ol>'
           : '<h2>No se pudo iniciar la plataforma</h2><p>Revise la consola del navegador.</p>';
       }
     }, 2500);

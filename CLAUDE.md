@@ -16,7 +16,7 @@ Curso: Taller en Énfasis II — Gestión de Mantenimiento (Grupo 5). Idioma de 
   - `chart.umd.min.js` (Chart.js 4) + `chartjs-plugin-annotation` → tendencias con bandas Caution/Danger.
   - `three.module.min.js` (Three.js) → modelo 3D esquemático (fase 4).
 - Persistencia: `localStorage` (clave `ex3600.v1`) + exportar/importar Excel/JSON. Envolver accesos en try/catch.
-- Entrega: `node herramientas/empaquetar.mjs` → `dist/Failaria.html` (un solo archivo con código, vendor, CSS, Excel e imágenes embebidos; abre con doble clic en `file://`) y `dist/Failaria_entrega.zip`. `dist/` está en .gitignore. Detalle en `docs/ENTREGA.md`.
+- Entrega: `node herramientas/empaquetar.mjs` → `Failaria.html` en la raíz (versionado; un solo archivo con código, vendor, CSS, Excel e imágenes embebidos; abre con doble clic en `file://`) y `dist/Failaria_entrega.zip` (`dist/` en .gitignore). Regenerar tras cada cambio y antes de cada push. Detalle en `docs/ENTREGA.md`.
 - Desarrollo: `python -m http.server` (o `iniciar.bat`). GitHub Pages / Netlify son opcionales para un link público.
 
 ## Estructura
@@ -34,7 +34,8 @@ src/ui/simulador3d.js mapa de daño FEA por vértice, grietas a escala, tirar co
 src/ui/lupa.js        lupa de grieta 2D (campo de Irwin, zona plástica, evolución con/sin carga, arrastrar = esfuerzo)
 assets/esquemas|fotos imágenes referenciadas por la columna "Imagen" del Excel
 data/                 Excel original (fuente de verdad; NO editarlo)
-tests/verify.cjs      verificación de la lógica pura con node (sin dependencias, 93 checks)
+src/diagnostico_ia.js diagnóstico IA incluido (se usa si store.ia es null; false = borrado por el usuario)
+tests/verify.cjs      verificación de la lógica pura con node (sin dependencias, 95 checks)
 herramientas/         empaquetar.mjs: versión entregable en un solo archivo (dist/)
 ```
 
@@ -44,6 +45,8 @@ herramientas/         empaquetar.mjs: versión entregable en un solo archivo (di
 - Cuidado con el nombre `info`: no declarar variables locales con ese nombre en las vistas (sombrea la importación).
 - Nombre de la plataforma en la interfaz: **Failaria** (subtítulo «Integridad estructural · Pala Hitachi EX3600»).
 - Toda ruta a un archivo local (imagen, Excel) pasa por `recurso()` o `rutaImagen()` de `src/ui/formato.js`: en `Failaria.html` los recursos están embebidos en `window.__RECURSOS`. Un `fetch`/`src` directo funciona en el servidor pero falla en la entrega. Tras cambios, regenerar y probar `dist/Failaria.html` abierto por `file://`.
+- Fechas del plan = horas proyectadas → `fechaDeHoras` (igual que Equipo); no adelantarlas a hoy: si ya pasaron, la tarea queda vencida.
+- El diagnóstico incluido (`src/diagnostico_ia.js`) debe coincidir con el análisis del Excel; si cambian datos o reglas y la prueba falla, regenerarlo con el prompt de la vista IA.
 - El plan de mantenimiento se siembra una vez desde el historial (`tareas.planInicial`, flag `store.planSembrado`).
 - Prueba visual: `python -m http.server 8765` + Playwright (chromium headless con `--use-angle=swiftshader`) recorre las rutas y comprueba 0 errores de consola.
 - Nunca convertir celda vacía en 0: vacío = **N/I**. 0 = sin grieta detectable.

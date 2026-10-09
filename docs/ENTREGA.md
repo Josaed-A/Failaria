@@ -11,6 +11,10 @@ Cómo se entrega la plataforma sin depender de GitHub ni de un servidor local, c
 
 El archivo trae adentro el código, las librerías (SheetJS, Chart.js, Three.js), los estilos, el Excel del historial y las imágenes de inspección. No necesita internet, Python, servidor, GitHub ni instalación. Pesa ≈ 6 MB, casi todo por los esquemas de inspección.
 
+Para entregar en Teams o en el aula virtual se adjunta `Failaria.html` o el ZIP, no el link del repositorio.
+
+**Diagnóstico IA incluido.** El archivo trae un diagnóstico ya generado con el prompt de la vista IA y los datos hasta el 11-oct-2025, así la vista IA y el Reporte no llegan vacíos a quien lo abre. Está en `src/diagnostico_ia.js`. Si el usuario guarda otro diagnóstico, ese reemplaza al incluido en su navegador.
+
 Solo dos funciones dependen de algo externo:
 
 - **IA con llamada directa a la API de Claude:** requiere internet y una clave propia. Sin clave, la vista arma el prompt para copiarlo en cualquier asistente.
@@ -24,11 +28,11 @@ Desde la raíz del repositorio:
 node herramientas/empaquetar.mjs
 ```
 
-Salida en `dist/`, carpeta ignorada por git:
+Salida:
 
 ```text
-dist/Failaria.html
-dist/Failaria_entrega.zip
+Failaria.html               raíz del repositorio, se versiona
+dist/Failaria_entrega.zip   carpeta ignorada por git
 ```
 
 Requisitos: Node 18 o superior. La primera vez se necesita internet, porque `npx` descarga esbuild (versión fija en el script). Hay que volver a generar el archivo después de cada cambio en `src/`, `index.html`, `assets/` o `data/`. El comentario al inicio del HTML y `LEEME.txt` indican el commit y la fecha de la versión.

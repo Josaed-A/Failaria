@@ -64,7 +64,7 @@ export function render(root, app, [piezaRuta]) {
       <div class="panel" id="pPieza"></div>
       <div class="espacio"></div>
       <div class="panel" style="padding:10px">
-        <div class="tabla-wrap"><table class="sim-tabla"><thead><tr><th>Punto</th><th>Gravedad ${info('Gravedad = L / a<sub>c</sub>. A 100 % la grieta alcanza la longitud crítica y la pieza falla.')}</th><th>Modo ${info(Object.values(MODOS).map((m) => `<p><b>${m.titulo}:</b> ${m.desc}</p>`).join(''))}</th><th class="n">Danger (h)</th><th class="n">Falla (h)</th></tr></thead><tbody id="tb"></tbody></table></div>
+        <div class="tabla-wrap"><table class="sim-tabla"><thead><tr><th>Punto</th><th>Gravedad<br><small>y modo</small> ${info('<p>Gravedad = L / a<sub>c</sub>. A 100 % la grieta alcanza la longitud crítica y la pieza falla.</p>' + Object.values(MODOS).map((m) => `<p><b>${m.titulo}:</b> ${m.desc}</p>`).join(''))}</th><th class="n">Danger<br><small>h</small></th><th class="n">Falla<br><small>h</small></th></tr></thead><tbody id="tb"></tbody></table></div>
       </div>
       <div class="espacio"></div>
       <div class="rejilla c2">
@@ -144,8 +144,7 @@ export function render(root, app, [piezaRuta]) {
     $('reloj').textContent = `+${fNum(Math.round(sim.horas))} h · ${fFecha(sim.fecha())}`;
     $('tb').innerHTML = lista.map((x) => `<tr class="clic ${x.fallado ? 'fallado' : ''} ${seleccion === x.codigo ? 'sel' : ''}" data-c="${x.codigo}">
       <td><b>${x.codigo}</b><br><small class="num">${fNum(x.L)} mm</small></td>
-      <td><div class="sev-barra" title="${fNum(x.severidad * 100)} %"><i style="width:${Math.round(x.severidad * 100)}%;background:${x.severidad > 0.62 ? '#d61f1f' : x.severidad > 0.37 ? '#f2d23a' : '#2ec46a'}"></i></div><small>${fNum(x.severidad * 100)} %</small></td>
-      <td><span class="modo-chip modo-${x.modo}">${MODOS[x.modo].corto}</span></td>
+      <td><div class="sev-fila"><div class="sev-barra" title="${fNum(x.severidad * 100)} %"><i style="width:${Math.round(x.severidad * 100)}%;background:${x.severidad > 0.62 ? '#d61f1f' : x.severidad > 0.37 ? '#f2d23a' : '#2ec46a'}"></i></div><small>${fNum(x.severidad * 100)} %</small></div><span class="modo-chip modo-${x.modo}">${MODOS[x.modo].corto}</span></td>
       <td class="n">${x.fallado ? '—' : x.horasDanger === 0 ? 'superado' : fNum(x.horasDanger)}</td>
       <td class="n">${x.fallado ? `<b style="color:#ff8080">+${fNum(Math.round(x.horaFalla))} h</b>` : Number.isFinite(x.horasCritico) ? fNum(x.horasCritico) : '∞'}</td></tr>`).join('');
     $('tb').querySelectorAll('tr').forEach((tr) => tr.addEventListener('click', () => seleccionar(tr.dataset.c)));

@@ -19,6 +19,7 @@ const cerca = (a, b, tol) => Math.abs(a - b) <= tol;
   const R = await import(url('src/reglas.js'));
   const F = await import(url('src/falla.js'));
   const T = await import(url('src/tareas.js'));
+  const { DIAGNOSTICO_DEFECTO: DIAG } = await import(url('src/diagnostico_ia.js'));
 
   const buf = fs.readFileSync(path.join(raiz, CONFIG.excelRuta));
   const modelo = D.leerLibro(XLSX, buf, CONFIG);
@@ -132,7 +133,7 @@ const cerca = (a, b, tol) => Math.abs(a - b) <= tol;
   const sug = T.sugerir(A, []);
   check('Sugerencias: parada, reparación de BR-01, inspección periódica y fotos', sug.some((t) => t.tipo === 'parada') && sug.some((t) => t.codigo === 'BR-01' && t.tipo === 'reparacion') && sug.some((t) => t.clave === 'inspeccion-periodica') && sug.some((t) => t.tipo === 'foto'), sug.map((t) => t.clave));
   check('Reparación de BR-01 con fecha = plazo del plan y lista de pasos de soldadura', (() => { const t = sug.find((t) => t.codigo === 'BR-01'); return t.fecha === A.plan.find((f) => f.codigo === 'BR-01').plazoFecha && t.checklist.length === 4; })());
-  check('Con «hoy» posterior, ninguna sugerencia queda en el pasado', T.sugerir(A, [], '2026-10-08').every((t) => !t.fecha || t.fecha >= '2026-10-08'));
+  check('Con «hoy» posterior, la parada conserva la fecha y las horas de Equipo (no se adelanta a hoy)', (() => { const p = T.sugerir(A, [], '2026-10-08').find((t) => t.tipo === 'parada'); return p.fecha === A.parada.fecha && p.horas === Math.round(A.horasActuales + A.parada.horas); })(), A.parada.fecha);
   check('Volver a sugerir no duplica', T.sugerir(A, sug).length === 0);
   check('Validación: título obligatorio y fecha obligatoria fuera de «Por planificar»', T.validarTarea(T.nuevaTarea({ titulo: '' })).length === 1 && T.validarTarea(T.nuevaTarea({ titulo: 'x', estado: 'programada' })).length === 1 && T.validarTarea(T.nuevaTarea({ titulo: 'x', estado: 'programada', fecha: '2026-01-05' })).length === 0);
   const t1 = T.mover(T.nuevaTarea({ titulo: 'a', fecha: '2025-10-01' }), 'ejecucion'); const t2 = T.mover(t1, 'hecha');
@@ -151,8 +152,17 @@ const cerca = (a, b, tol) => Math.abs(a - b) <= tol;
   const hechas = plan.filter((t) => t.estado === 'hecha');
   check('Plan inicial: reparaciones y cambios del historial como tareas hechas (parada 2024-03-01 con 6 puntos)', hechas.length >= 6 && hechas.some((t) => t.tipo === 'parada' && t.fecha === '2024-03-01' && t.checklist.length >= 2) && hechas.some((t) => t.tipo === 'cambio'), hechas.map((t) => t.fecha + ':' + t.tipo));
   check('Plan inicial: parada, reparación de BR-01 e inspección periódica programadas con responsable', ['parada', 'reparacion'].every((tipo) => plan.some((t) => t.tipo === tipo && t.estado === 'programada' && t.responsable)) && plan.some((t) => t.clave === 'inspeccion-periodica' && t.estado === 'programada'));
-  check('Plan inicial: revisión de soldadura y datos sospechosos en ejecución; nada en el pasado salvo lo hecho', plan.filter((t) => t.estado === 'ejecucion').length === 2 && plan.every((t) => t.estado === 'hecha' || !t.fecha || t.fecha >= '2026-10-08'));
+  check('Plan inicial: revisión de soldadura y datos sospechosos en ejecución', plan.filter((t) => t.estado === 'ejecucion').length === 2);
+  check('Plan inicial: con «hoy» posterior a la parada recomendada, la parada queda vencida y cuenta en los KPIs', (() => { const p = plan.find((t) => t.tipo === 'parada' && t.estado === 'programada'); return p.fecha === A.parada.fecha && T.vencida(p, '2026-10-08') && T.kpisTareas(plan, '2026-10-08').vencidas >= 1; })());
   check('Plan inicial: claves únicas', new Set(plan.map((t) => t.clave)).size === plan.length);
+
+  console.log('\nDiagnóstico IA incluido');
+  check('Diagnóstico por defecto vigente: datos hasta la última inspección y cifras clave del análisis (estado, BR-01, parada)', (() => {
+    const fmt = (iso) => { const [y, m, d] = iso.split('-'); return `${d}-${['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'][+m - 1]}-${y}`; };
+    const br = A.puntos['BR-01'];
+    return DIAG.datosHasta === A.ultimaInsp.fecha && A.estadoEquipo === 'Alerta' && DIAG.texto.includes(fmt(A.parada.fecha)) && DIAG.texto.includes(fmt(A.parada.fechaLimite))
+      && DIAG.texto.includes(`${br.ultimoValido.Lef} mm`) && DIAG.texto.includes(Math.round(br.proyeccion.restanteDanger).toLocaleString('de-DE') + ' h');
+  })(), [A.parada.fecha, A.parada.fechaLimite]);
 
   console.log('\nDecisiones del usuario y registro nuevo');
   const dec = { [D.idMedicion('3600-01', '2025-04-22', 'CU-01')]: { accion: 'corregir', valor: 101 }, [D.idMedicion('3600-01', '2025-04-22', 'CU-02')]: { accion: 'descartar' } };

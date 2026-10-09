@@ -81,6 +81,8 @@ La detección no sirve sin ejecución. La vista **Plan** convierte las recomenda
 | Fotos desactualizadas | Registro fotográfico de la zona | Próxima inspección |
 | Siempre | Inspección periódica de los 12 puntos | Última inspección + intervalo típico |
 
+Las fechas propuestas salen de las horas proyectadas con la utilización histórica, la misma regla de la próxima parada en la vista Equipo. Si una fecha ya pasó, se conserva y la tarea queda **vencida**: el tablero no la mueve a hoy, porque eso ocultaría que el plazo se cumplió sin intervenir.
+
 Cerrar una tarea de reparación debe terminar en **Registrar** con L = 0 y el comentario «Zona reparada por soldadura»: así el ciclo se reinicia y la plataforma vigila la reincidencia.
 
 ## 6. Lo que el simulador NO es

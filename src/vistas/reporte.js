@@ -16,7 +16,7 @@ export function render(root, app) {
   const insp = A.ultimaInsp; const eq = A.modelo.equipo;
   app.migas([{ t: 'Flota', h: '#/flota' }, { t: `Equipo ${eq.id}`, h: `#/equipo/${eq.id}` }, { t: 'Reporte' }]);
   const foco = cfg.componenteFoco;
-  const ia = app.store.ia;
+  const ia = app.diagnosticoIA();
   const enAlerta = Object.values(A.puntos).filter((a) => a.estadoActual === 'Alerta' || a.estadoActual === 'Crítico');
 
   root.innerHTML = `
