@@ -32,8 +32,8 @@ export function puntoEnPieza(pieza, t) {
 
 // Sección (alto h, ancho w) de cada pieza a lo largo de su longitud.
 export const PERFIL = {
-  boom: (t) => ({ h: 1.45 + 0.6 * Math.sin(Math.PI * Math.min(1, t / 0.9)) - 0.35 * t, w: 1.35 - 0.25 * t }),
-  brazo: (t) => ({ h: 1.5 - 0.65 * t, w: 1.0 - 0.15 * t }),
+  boom: (t) => ({ h: 1.55 + 0.6 * Math.sin(Math.PI * Math.min(1, t / 0.95)) - 0.45 * t, w: 1.9 - 0.8 * t }),
+  brazo: (t) => ({ h: 1.75 - 0.85 * t, w: 1.15 - 0.3 * t }),
   cucharon: () => ({ h: 1.4, w: 2.7 }),
 };
 
@@ -123,44 +123,64 @@ export function construirPieza(THREE, scene, pieza, op = {}) {
     const m = new THREE.Mesh(new THREE.BoxGeometry(0.05, h + 0.03, w + 0.03), M.soldadura); m.position.set(p[0], p[1], 0); m.rotation.z = Math.atan2(tg[1], tg[0]); return add(m, parent);
   };
 
+  // Líneas de soldadura: aristas longitudinales de una viga y costuras transversales (mamparos).
+  const bordes = (mesh) => { const l = new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry, 28), new THREE.LineBasicMaterial({ color: 0x0e1219, transparent: true, opacity: 0.85 })); l.position.copy(mesh.position); l.rotation.copy(mesh.rotation); return add(l, mesh.parent || scene); };
+  const costura = (p, tg, h, w, parent = scene) => {
+    const n = [-tg[1], tg[0]]; const q = (sy, sz) => new THREE.Vector3(p[0] + n[0] * sy * (h / 2 + 0.012), p[1] + n[1] * sy * (h / 2 + 0.012), sz * (w / 2 + 0.012));
+    const g = new THREE.BufferGeometry().setFromPoints([q(1, 1), q(1, -1), q(-1, -1), q(-1, 1), q(1, 1)]);
+    return add(new THREE.Line(g, new THREE.LineBasicMaterial({ color: 0x0e1219, transparent: true, opacity: 0.7 })), parent);
+  };
+  const vigaE = (camino, perfil, N, parent = scene, z = 0) => { const m = new THREE.Mesh(vigaGeometria(THREE, camino, perfil, N, fea), M.metal); m.position.z = z; add(m, parent, true); bordes(m); return m; };
+  const bujeDoble = (x, y, r, largo, parent = scene) => { bujeE(x, y, r, largo, parent); const m = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.55, r * 0.55, largo + 0.3, 24), M.oscuro); m.rotation.x = Math.PI / 2; m.position.set(x, y, 0); add(m, parent); return m; }; // buje con agujero oscuro
+
   if (pieza === 'boom') {
-    const viga = new THREE.Mesh(vigaGeometria(THREE, (t) => puntoEnPieza('boom', t), PERFIL.boom, 72, fea), M.metal); add(viga, scene, true);
-    for (const t of [0.1, 0.2, 0.31, 0.5, 0.63, 0.76, 0.9]) { const { p, tg } = puntoEnPieza('boom', t); const { h, w } = PERFIL.boom(t); anillo(p, tg, h, w); }
-    // Pie bifurcado: dos orejas con buje (pasador al bastidor)
-    const f = puntoEnPieza('boom', 0); const af = Math.atan2(f.tg[1], f.tg[0]);
-    for (const z of [-0.95, 0.95]) cajaE(1.4, 1.5, 0.26, f.p[0] - 0.25, f.p[1] - 0.05, z, af);
-    bujeE(f.p[0] - 0.55, f.p[1] - 0.2, 0.42, 2.4); ejeZ(f.p[0] - 0.55, f.p[1] - 0.2, 0.3, 2.7);
-    // Orejas de los cilindros del boom (parte inferior)
-    { const { p, tg } = puntoEnPieza('boom', 0.42); const n = [-tg[1], tg[0]]; const a = Math.atan2(tg[1], tg[0]);
-      for (const z of [-1.0, 1.0]) cajaE(1.1, 0.75, 0.2, p[0] - n[0] * 0.95, p[1] - n[1] * 0.95, z, a);
-      bujeE(p[0] - n[0] * 1.15, p[1] - n[1] * 1.15, 0.28, 2.3); ejeZ(p[0] - n[0] * 1.15, p[1] - n[1] * 1.15, 0.2, 2.6); }
-    // Soporte del cilindro del brazo (parte superior, dos orejas verticales)
-    { const { p, tg } = puntoEnPieza('boom', 0.5); const n = [-tg[1], tg[0]]; const a = Math.atan2(tg[1], tg[0]);
-      for (const z of [-0.42, 0.42]) cajaE(1.1, 1.0, 0.16, p[0] + n[0] * 1.2, p[1] + n[1] * 1.2, z, a + 0.35);
-      bujeE(p[0] + n[0] * 1.55, p[1] + n[1] * 1.55, 0.26, 1.1); ejeZ(p[0] + n[0] * 1.55, p[1] + n[1] * 1.55, 0.18, 1.5); }
-    // Horquilla de punta (pasador del brazo)
-    { const { p, tg } = puntoEnPieza('boom', 1); const a = Math.atan2(tg[1], tg[0]);
-      for (const z of [-0.72, 0.72]) cajaE(1.2, 1.1, 0.22, p[0] + 0.15, p[1] - 0.05, z, a);
-      bujeE(p[0] + 0.35, p[1] - 0.1, 0.4, 1.7); ejeZ(p[0] + 0.35, p[1] - 0.1, 0.3, 2.0); }
+    // Cuerpo: viga curva desde donde se unen las dos piernas del pie hasta la punta
+    const t0 = 0.14;
+    vigaE((t) => puntoEnPieza('boom', t0 + (1 - t0) * t), (t) => PERFIL.boom(t0 + (1 - t0) * t), 64);
+    for (const t of [0.22, 0.31, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]) { const { p, tg } = puntoEnPieza('boom', t); const { h, w } = PERFIL.boom(t); costura(p, tg, h, w); }
+    // Pie bifurcado: dos piernas con buje grande cada una (pasadores al bastidor) y un puente entre ellas
+    for (const z of [-0.62, 0.62]) {
+      vigaE((t) => puntoEnPieza('boom', t * (t0 + 0.02)), (t) => ({ h: PERFIL.boom(t * t0).h * 0.92, w: 0.62 }), 10, scene, z);
+      const f = puntoEnPieza('boom', 0.01); const bj = bujeDoble(f.p[0] - 0.1, f.p[1] - 0.25, 0.55, 0.78); bj.position.z = z;
+      const anilloPie = new THREE.Mesh(pintarBase(THREE, new THREE.CylinderGeometry(0.55, 0.55, 0.78, 28), fea), M.metal); anilloPie.rotation.x = Math.PI / 2; anilloPie.position.set(f.p[0] - 0.1, f.p[1] - 0.25, z); add(anilloPie, scene, true);
+    }
+    { const f = puntoEnPieza('boom', 0.06); const af = Math.atan2(f.tg[1], f.tg[0]); cajaE(0.9, PERFIL.boom(0.06).h * 0.55, 0.7, f.p[0], f.p[1] + 0.2, 0, af); }
+    // Orejas de los cilindros del boom (bajo el cuerpo, a los lados) con buje pasante
+    { const { p, tg } = puntoEnPieza('boom', 0.4); const n = [-tg[1], tg[0]]; const a = Math.atan2(tg[1], tg[0]); const { h, w } = PERFIL.boom(0.4);
+      for (const z of [-(w / 2 + 0.1), w / 2 + 0.1]) cajaE(1.3, 0.9, 0.2, p[0] - n[0] * (h / 2 + 0.25), p[1] - n[1] * (h / 2 + 0.25), z, a);
+      bujeDoble(p[0] - n[0] * (h / 2 + 0.5), p[1] - n[1] * (h / 2 + 0.5), 0.3, w + 0.45); }
+    // Soporte del cilindro del brazo sobre el codo: dos placas inclinadas con buje
+    { const { p, tg } = puntoEnPieza('boom', 0.5); const n = [-tg[1], tg[0]]; const a = Math.atan2(tg[1], tg[0]); const { h } = PERFIL.boom(0.5);
+      for (const z of [-0.4, 0.4]) cajaE(1.25, 1.05, 0.16, p[0] + n[0] * (h / 2 + 0.45), p[1] + n[1] * (h / 2 + 0.45), z, a + 0.4);
+      bujeDoble(p[0] + n[0] * (h / 2 + 0.85), p[1] + n[1] * (h / 2 + 0.85), 0.26, 1.05);
+      cajaE(0.4, 0.25, 0.5, p[0] + n[0] * (h / 2 + 0.1) - tg[0] * 1.2, p[1] + n[1] * (h / 2 + 0.1) - tg[1] * 1.2, 0, a); } // soporte de mangueras
+    // Punta: horquilla con dos mejillas y buje del pasador del brazo
+    { const { p, tg } = puntoEnPieza('boom', 1); const a = Math.atan2(tg[1], tg[0]); const { w } = PERFIL.boom(1);
+      for (const z of [-(w / 2 - 0.1), w / 2 - 0.1]) cajaE(1.3, 1.1, 0.22, p[0] + 0.3, p[1] - 0.15, z, a);
+      bujeDoble(p[0] + 0.55, p[1] - 0.25, 0.42, w + 0.35); }
   }
 
   if (pieza === 'brazo') {
-    const B0 = PIVOTES.brazo[0], B1 = PIVOTES.brazo[1]; const dB = [B1[0] - B0[0], B1[1] - B0[1]]; const LB = Math.hypot(...dB); const uB = [dB[0] / LB, dB[1] / LB]; const nB = [-uB[1], uB[0]];
-    const ext = 1.25; const atras = [B0[0] - uB[0] * ext, B0[1] - uB[1] * ext]; const aB = Math.atan2(uB[1], uB[0]);
-    const camino = (t) => ({ p: [atras[0] + (B1[0] - atras[0]) * t, atras[1] + (B1[1] - atras[1]) * t], tg: uB });
-    const perfil = (t) => PERFIL.brazo(Math.max(0, (t * (LB + ext) - ext) / LB));
-    add(new THREE.Mesh(vigaGeometria(THREE, camino, perfil, 56, fea), M.metal), scene, true);
-    for (const t of [0.33, 0.47, 0.6, 0.74, 0.88]) { const { p } = camino(t); const { h, w } = perfil(t); anillo(p, uB, h, w); }
-    // Orejas en abanico del extremo trasero (cilindro del brazo) y buje
-    for (const [z, k] of [[-0.36, 0], [0, 1], [0.36, 2]]) cajaE(1.3, 0.5, 0.14, atras[0] - uB[0] * 0.35 + nB[0] * (0.55 + 0.12 * k), atras[1] - uB[1] * 0.35 + nB[1] * (0.55 + 0.12 * k), z, aB + 0.55 + 0.12 * k);
-    bujeE(atras[0] - uB[0] * 0.75 + nB[0] * 1.0, atras[1] - uB[1] * 0.75 + nB[1] * 1.0, 0.24, 1.1); ejeZ(atras[0] - uB[0] * 0.75 + nB[0] * 1.0, atras[1] - uB[1] * 0.75 + nB[1] * 1.0, 0.16, 1.4);
-    // Buje del pivote boom–brazo
-    bujeE(B0[0], B0[1], 0.5, 1.15); ejeZ(B0[0], B0[1], 0.3, 1.6);
-    // Oreja del balancín del cucharón (dos placas)
-    { const m = [B0[0] + uB[0] * 2.9, B0[1] + uB[1] * 2.9]; for (const z of [-0.42, 0.42]) cajaE(0.8, 0.7, 0.14, m[0] + nB[0] * 0.65, m[1] + nB[1] * 0.65, z, aB); bujeE(m[0] + nB[0] * 0.95, m[1] + nB[1] * 0.95, 0.2, 1.0); ejeZ(m[0] + nB[0] * 0.95, m[1] + nB[1] * 0.95, 0.13, 1.3); }
-    // Horquilla del cucharón
-    for (const z of [-0.62, 0.62]) cajaE(1.0, 0.95, 0.2, B1[0] - uB[0] * 0.2, B1[1] - uB[1] * 0.2, z, aB);
-    bujeE(B1[0], B1[1], 0.38, 1.5); ejeZ(B1[0], B1[1], 0.25, 2.3);
+    const B0 = PIVOTES.brazo[0], B1 = PIVOTES.brazo[1]; const dB = [B1[0] - B0[0], B1[1] - B0[1]]; const LB = Math.hypot(...dB); const uB = [dB[0] / LB, dB[1] / LB]; const nB = [-uB[1], uB[0]]; const aB = Math.atan2(uB[1], uB[0]);
+    // Cuerpo ahusado desde la cabeza (pivote) hasta la horquilla del cucharón
+    const cab = [B0[0] - uB[0] * 0.55, B0[1] - uB[1] * 0.55];
+    const camino = (t) => ({ p: [cab[0] + (B1[0] - cab[0]) * t, cab[1] + (B1[1] - cab[1]) * t], tg: uB });
+    const perfil = (t) => PERFIL.brazo(Math.max(0, (t * (LB + 0.55) - 0.55) / LB));
+    vigaE(camino, perfil, 56);
+    for (const t of [0.2, 0.34, 0.48, 0.62, 0.76, 0.9]) { const { p } = camino(t); const { h, w } = perfil(t); costura(p, uB, h, w); }
+    // Nariz trasera inclinada (anclaje del cilindro del brazo)
+    const incl = 0.5; const dN = [Math.cos(aB + Math.PI - incl), Math.sin(aB + Math.PI - incl)]; const nariz = [cab[0] + dN[0] * 1.3, cab[1] + dN[1] * 1.3];
+    vigaE((t) => ({ p: [cab[0] + dN[0] * 1.35 * t + uB[0] * 0.1, cab[1] + dN[1] * 1.35 * t + uB[1] * 0.1], tg: dN }), (t) => ({ h: 1.25 - 0.55 * t, w: 1.05 - 0.2 * t }), 12);
+    bujeDoble(nariz[0], nariz[1], 0.28, 1.15);
+    // Buje del pivote boom–brazo (grande, a ambos lados)
+    bujeDoble(B0[0], B0[1], 0.55, 1.5);
+    // Abanico de cuatro orejas sobre la placa superior (base del cilindro del cucharón)
+    { const m = [B0[0] + uB[0] * 0.9, B0[1] + uB[1] * 0.9]; const { h } = PERFIL.brazo(0.1);
+      for (const z of [-0.48, -0.16, 0.16, 0.48]) cajaE(1.2, 0.95, 0.09, m[0] + nB[0] * (h / 2 + 0.4), m[1] + nB[1] * (h / 2 + 0.4), z, aB + 0.3);
+      bujeDoble(m[0] + nB[0] * (h / 2 + 0.75) + uB[0] * 0.25, m[1] + nB[1] * (h / 2 + 0.75) + uB[1] * 0.25, 0.2, 1.2); }
+    // Orejas del balancín (lado del cucharón) y horquilla con buje del pasador
+    { const m = [B0[0] + uB[0] * 3.2, B0[1] + uB[1] * 3.2]; const { h } = PERFIL.brazo(0.55); for (const z of [-0.4, 0.4]) cajaE(0.8, 0.7, 0.12, m[0] + nB[0] * (h / 2 + 0.25), m[1] + nB[1] * (h / 2 + 0.25), z, aB); bujeDoble(m[0] + nB[0] * (h / 2 + 0.5), m[1] + nB[1] * (h / 2 + 0.5), 0.18, 1.0); }
+    { const { w } = PERFIL.brazo(1); for (const z of [-(w / 2 + 0.02), w / 2 + 0.02]) cajaE(1.1, 1.0, 0.2, B1[0] - uB[0] * 0.15, B1[1] - uB[1] * 0.15, z, aB); bujeDoble(B1[0], B1[1], 0.4, w + 0.6); }
   }
 
   if (pieza === 'cucharon') {
@@ -176,7 +196,7 @@ export function construirPieza(THREE, scene, pieza, op = {}) {
     for (let z = -1.1; z <= 1.11; z += 0.44) for (let i = 0; i < seg.length; i++) { const a = concha[i], b = concha[i + 1]; const tg = [(b[0] - a[0]) / seg[i], (b[1] - a[1]) / seg[i]]; const n = [tg[1], -tg[0]]; const m = new THREE.Mesh(new THREE.BoxGeometry(seg[i], 0.06, 0.1), M.soldadura); m.position.set((a[0] + b[0]) / 2 + n[0] * 0.1, (a[1] + b[1]) / 2 + n[1] * 0.1, z); m.rotation.z = Math.atan2(tg[1], tg[0]); add(m, cu); }
     // Placas laterales y placas de desgaste laterales
     const lado = new THREE.Shape(); [[0.15, 0.6], [-0.3, 0.25], [-0.42, -0.3], [-0.1, -0.8], [0.6, -1.08], [1.4, -1.12], [Lc, -0.75], [Lc - 0.1, -0.1], [1.3, 0.35]].forEach(([x, y], i) => (i ? lado.lineTo(x, y) : lado.moveTo(x, y)));
-    for (const z of [-1.37, 1.37]) { const m = new THREE.Mesh(pintarBase(THREE, new THREE.ExtrudeGeometry(lado, { depth: 0.14, bevelEnabled: false }), fea), M.metal); m.position.z = z - 0.07; add(m, cu, true); }
+    for (const z of [-1.37, 1.37]) { const m = new THREE.Mesh(pintarBase(THREE, new THREE.ExtrudeGeometry(lado, { depth: 0.14, bevelEnabled: false }), fea), M.metal); m.position.z = z - 0.07; add(m, cu, true); bordes(m); }
     for (const z of [-1.5, 1.5]) for (let k = 0; k < 3; k++) { const m = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.9 - 0.2 * k, 0.05), M.soldadura); m.position.set(0.25 + 0.6 * k, -0.45 - 0.1 * k, z); add(m, cu); }
     // Labio reforzado, dientes y cuchillas laterales
     cajaE(0.3, 0.22, 2.75, Lc - 0.05, -0.75, 0, 0, cu);
@@ -252,17 +272,17 @@ export function construirPala(THREE, scene, op = {}) {
   caja(1.5, 0.6, 1.8, carroceria, 1.9, 2.95, -1.6);           // tanque hidráulico
   for (const [x, z] of [[-4.3, 2.7], [-4.3, -2.7], [2.6, -2.7], [0.5, -2.7], [-2, -2.7], [2.6, 2.8]]) { cil([x, 2.6], [x, 3.6], 0.03, acero, z); } // postes de barandas
   cil([-4.3, 3.6], [2.6, 3.6], 0.03, acero, -2.7); cil([-4.3, 3.6], [-4.3, 3.6], 0.03, acero, 2.7, scene, -2.7); cil([-4.3, 3.1], [2.6, 3.1], 0.03, acero, -2.7);
-  for (const z of [-1.25, 1.25]) caja(1.3, 1.2, 0.3, carroceria, 1.9, 3.1, z); // soporte del pie del boom
+  for (const z of [-1.0, 1.0]) caja(1.4, 1.3, 0.3, carroceria, 1.9, 3.05, z); // soporte del pie del boom
 
   // --- Piezas estructurales ---
   for (const pieza of ['boom', 'brazo', 'cucharon']) estructura.push(...construirPieza(THREE, scene, pieza, { fea, mat: M }).estructura);
 
   // --- Cilindros hidráulicos ---
   const B0 = PIVOTES.brazo[0], B1 = PIVOTES.brazo[1]; const dB = [B1[0] - B0[0], B1[1] - B0[1]]; const LB = Math.hypot(...dB); const uB = [dB[0] / LB, dB[1] / LB]; const nB = [-uB[1], uB[0]];
-  const atras = [B0[0] - uB[0] * 1.25, B0[1] - uB[1] * 1.25];
-  for (const z of [-1.1, 1.1]) { const { p, tg } = puntoEnPieza('boom', 0.42); const n = [-tg[1], tg[0]]; hidraulico([2.4, 2.75], [p[0] - n[0] * 1.15, p[1] - n[1] * 1.15], 0.24, z, 0.58); }
-  { const { p, tg } = puntoEnPieza('boom', 0.5); const n = [-tg[1], tg[0]]; hidraulico([p[0] + n[0] * 1.55, p[1] + n[1] * 1.55], [atras[0] - uB[0] * 0.75 + nB[0] * 1.0, atras[1] - uB[1] * 0.75 + nB[1] * 1.0], 0.22, 0, 0.6); } // cilindro del brazo
-  { const m = [B0[0] + uB[0] * 2.9, B0[1] + uB[1] * 2.9]; const o = [m[0] + nB[0] * 0.95, m[1] + nB[1] * 0.95]; hidraulico([B0[0] + uB[0] * 0.35 + nB[0] * 0.95, B0[1] + uB[1] * 0.35 + nB[1] * 0.95], o, 0.19, 0, 0.58);
+  const aB = Math.atan2(uB[1], uB[0]); const cab = [B0[0] - uB[0] * 0.55, B0[1] - uB[1] * 0.55]; const dN = [Math.cos(aB + Math.PI - 0.5), Math.sin(aB + Math.PI - 0.5)]; const nariz = [cab[0] + dN[0] * 1.3, cab[1] + dN[1] * 1.3];
+  { const { p, tg } = puntoEnPieza('boom', 0.4); const n = [-tg[1], tg[0]]; const { h, w } = PERFIL.boom(0.4); for (const z of [-(w / 2 + 0.22), w / 2 + 0.22]) hidraulico([2.4, 2.75], [p[0] - n[0] * (h / 2 + 0.5), p[1] - n[1] * (h / 2 + 0.5)], 0.24, z, 0.58); }
+  { const { p, tg } = puntoEnPieza('boom', 0.5); const n = [-tg[1], tg[0]]; const { h } = PERFIL.boom(0.5); hidraulico([p[0] + n[0] * (h / 2 + 0.85), p[1] + n[1] * (h / 2 + 0.85)], nariz, 0.22, 0, 0.6); } // cilindro del brazo
+  { const m = [B0[0] + uB[0] * 3.2, B0[1] + uB[1] * 3.2]; const hb = PERFIL.brazo(0.55).h; const o = [m[0] + nB[0] * (hb / 2 + 0.5), m[1] + nB[1] * (hb / 2 + 0.5)]; const b0 = [B0[0] + uB[0] * 0.9, B0[1] + uB[1] * 0.9]; const h0 = PERFIL.brazo(0.1).h; hidraulico([b0[0] + nB[0] * (h0 / 2 + 0.75) + uB[0] * 0.25, b0[1] + nB[1] * (h0 / 2 + 0.75) + uB[1] * 0.25], o, 0.19, 0, 0.58);
     const C = PIVOTES.cucharon[0]; const ang = Math.atan2(PIVOTES.cucharon[1][1] - C[1], PIVOTES.cucharon[1][0] - C[0]);
     const lab = [C[0] + Math.cos(ang) * 0.75 - Math.sin(ang) * 0.8, C[1] + Math.sin(ang) * 0.75 + Math.cos(ang) * 0.8]; cil(o, lab, 0.07, acero, 0.35); cil(o, lab, 0.07, acero, -0.35); } // balancín del cucharón
 
@@ -317,8 +337,9 @@ export function escenaBase(THREE, OrbitControls, cont, op = {}) {
   const ctrl = new OrbitControls(cam, renderer.domElement);
   ctrl.target.set(5.5, 4, 0); ctrl.enableDamping = true; ctrl.maxDistance = 45; ctrl.minDistance = 6; ctrl.maxPolarAngle = Math.PI * 0.49;
   ctrl.update();
-  scene.add(new THREE.HemisphereLight(0xcfe3ff, 0x202833, 1.1));
-  const sol = new THREE.DirectionalLight(0xffffff, 1.6); sol.position.set(10, 18, 12); scene.add(sol);
+  scene.add(new THREE.HemisphereLight(0xcfe3ff, 0x202833, 1.0));
+  const sol = new THREE.DirectionalLight(0xffffff, 1.7); sol.position.set(10, 18, 12); scene.add(sol);
+  const relleno = new THREE.DirectionalLight(0x9fc3ff, 0.55); relleno.position.set(-12, 6, -14); scene.add(relleno);
   const ro = new ResizeObserver(() => { renderer.setSize(w(), h()); cam.aspect = w() / h(); cam.updateProjectionMatrix(); });
   ro.observe(cont);
   return { renderer, scene, cam, ctrl, ro, w, h };
