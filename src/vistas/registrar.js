@@ -1,5 +1,6 @@
 // Vista Registrar: formulario con la misma estructura del formato de inspección (Word).
 import { estadoDe, ACCION_POR_ESTADO, simular } from '../reglas.js';
+import { info } from '../ui/ayuda.js';
 import { idInspeccion, idMedicion } from '../datos.js';
 import { reducirImagen } from '../almacen.js';
 import { esc, estadoHTML, fFecha, fNum } from '../ui/formato.js';
@@ -20,8 +21,7 @@ export function render(root, app, [fechaEditar]) {
   const valorExistente = (codigo) => existente ? A.modelo.mediciones.find((m) => m.id === idMedicion(eq, existente.fecha, codigo)) : null;
 
   root.innerHTML = `
-  <div class="cabecera"><div><h1>${existente ? 'Editar' : 'Registrar'} inspección estructural</h1>
-    <p>Misma estructura del formato de inspección EX3600. La L anterior se completa sola y el estado se calcula en vivo con los umbrales de la hoja Puntos.</p></div>
+  <div class="cabecera"><div><h1>${existente ? 'Editar' : 'Registrar'} inspección estructural ${info(`<p>Misma estructura del formato de inspección EX3600: cabecera, una tabla por zona y fotos. La <b>L anterior</b> se completa sola y el <b>estado</b> se calcula en vivo con los umbrales de la hoja Puntos.</p><p>Con el equipo armado algunas áreas quedan ocultas: marque <b>N/I</b> en esos puntos, nunca 0 (0 = sin grieta detectable).</p><p>Los avisos violeta detectan errores de digitación (caídas a 0 sin reparación, disminuciones, saltos grandes) antes de guardar.</p><p>Al guardar, la inspección se suma al historial (clave Fecha + Código) y se recalculan alertas, plan y reporte.</p>`)}</h1></div>
     <div class="fila no-print"><select id="selEditar" aria-label="Editar una inspección existente"><option value="">Nueva inspección</option>${[...A.inspecciones].reverse().map((i) => `<option value="${i.fecha}" ${existente?.fecha === i.fecha ? 'selected' : ''}>Editar ${fFecha(i.fecha)}${i.origen === 'app' ? ' (app)' : ''}</option>`).join('')}</select></div></div>
   <form id="frm" class="panel" autocomplete="off">
     <div class="rejilla c4">
@@ -30,8 +30,7 @@ export function render(root, app, [fechaEditar]) {
       <label class="campo">HORAS (horómetro)<input type="number" name="horas" step="0.1" min="0" required value="${existente?.horas ?? ''}" placeholder="p. ej. ${fNum(A.horasActuales + A.intervalo)}"><small id="hHoras"></small></label>
       <label class="campo">INSPECTOR<input type="text" name="inspector" list="dlInsp" required value="${esc(existente?.inspector ?? '')}"><datalist id="dlInsp">${inspectores.map((x) => `<option value="${esc(x)}">`).join('')}</datalist></label>
     </div>
-    <p class="tenue" style="font-size:.85rem">ZONAS: ${Object.keys(cfg.zonas).length} zonas · ${Object.keys(A.puntos).length} puntos. NOTA: con el equipo armado algunas áreas quedan ocultas y no son inspeccionables; marque <b>N/I</b> en esos puntos (nunca 0).</p>
-    <details><summary class="tenue">Criterio de estado</summary><table style="margin-top:6px"><tbody>${['Normal', 'Alerta', 'Crítico', 'N/I'].map((e) => `<tr><td>${estadoHTML(e)}</td><td>${{ Normal: 'L actual menor que Caution.', Alerta: 'L actual igual o mayor que Caution y menor que Danger.', 'Crítico': 'L actual igual o mayor que Danger.', 'N/I': 'No inspeccionado (acceso, limpieza deficiente o fuera de programación).' }[e]} ${ACCION_POR_ESTADO[e]}</td></tr>`).join('')}</tbody></table></details>
+    <p class="tenue" style="font-size:.85rem;margin:6px 0 0">${Object.keys(cfg.zonas).length} zonas · ${Object.keys(A.puntos).length} puntos · Criterio de estado ${info(`<table><tbody>${['Normal', 'Alerta', 'Crítico', 'N/I'].map((e) => `<tr><td>${estadoHTML(e)}</td><td>${{ Normal: 'L actual menor que Caution.', Alerta: 'L actual igual o mayor que Caution y menor que Danger.', 'Crítico': 'L actual igual o mayor que Danger.', 'N/I': 'No inspeccionado (acceso, limpieza deficiente o fuera de programación).' }[e]} ${ACCION_POR_ESTADO[e]}</td></tr>`).join('')}</tbody></table>`)}</p>
     <label class="campo" style="margin-top:10px">Observaciones generales de la inspección<textarea name="obs">${esc(existente?.observaciones ?? '')}</textarea></label>
 
     ${Object.entries(cfg.zonas).map(([zid, z], n) => `

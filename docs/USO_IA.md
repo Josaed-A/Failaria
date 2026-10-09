@@ -6,9 +6,10 @@ El curso exige usar IA. Se usó en dos niveles: **para construir la plataforma**
 
 | Etapa | Herramienta | Uso | Control humano |
 |---|---|---|---|
-| Análisis de datos | Claude | Revisión del Excel (276 mediciones) y del formato Word: identificación de reparaciones, N/I y datos sospechosos (D1–D7) y de los hallazgos de mantenimiento (CU-02 en Crítico, BR-01 en Alerta, reincidencias). | Cada hallazgo se verificó contra el Excel original; ver [PLAN.md](../PLAN.md). |
-| Diseño | Claude | Plan por fases con criterios de aceptación y modelo de datos normalizado (PLAN.md, CLAUDE.md). | El equipo definió los requisitos, el stack y las reglas de decisión. |
+| Análisis de datos | Claude | Revisión del Excel (276 mediciones) y del formato Word: identificación de reparaciones, N/I y datos sospechosos (D1–D7) y de los hallazgos de mantenimiento (CU-02 en Crítico, BR-01 en Alerta, reincidencias). | Cada hallazgo se verificó contra el Excel original; ver [historial/PLAN_FASES.md](historial/PLAN_FASES.md). |
+| Diseño | Claude | Plan por fases con criterios de aceptación y modelo de datos normalizado (historial/PLAN_FASES.md, CLAUDE.md). | El equipo definió los requisitos, el stack y las reglas de decisión. |
 | Programación | Claude Code | Escritura del código (`src/`), pruebas (`tests/verify.cjs`) y revisión visual en el navegador. | Reglas de negocio separadas del DOM y verificadas con 50 pruebas automáticas; commits por fase. |
+| Mecánica de fractura | Claude + búsqueda web | Síntesis de ley de Paris, intervalos de inspección (BS 7910 / API 579) y FAD para el simulador de falla; fuentes citadas en [MANTENIMIENTO_Y_FALLA.md](MANTENIMIENTO_Y_FALLA.md). | Modelo simplificado y parametrizable; sus límites se declaran en la misma página. |
 | Ubicación de puntos | Claude (visión) | Lectura de los esquemas para ubicar las flechas de cada punto (`hotspots` en `src/config.js`). | Coordenadas editables y revisadas sobre la imagen. |
 
 **Criterios que se mantuvieron:** los umbrales vienen siempre de la hoja Puntos; una celda vacía nunca se convierte en 0; los datos sospechosos se marcan pero no se borran, y decide el usuario.

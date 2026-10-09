@@ -1,5 +1,6 @@
 // Vista Calidad de datos: «los datos vienen de campo; revísenlos antes de confiar».
 import { diasEntre } from '../reglas.js';
+import { info } from '../ui/ayuda.js';
 import { esc, estadoHTML, fFecha, fMm, fNum, rutaImagen } from '../ui/formato.js';
 import { activarDecisiones, decisionHTML } from './comunes.js';
 
@@ -8,7 +9,7 @@ export function render(root, app) {
   app.migas([{ t: 'Flota', h: '#/flota' }, { t: `Equipo ${A.modelo.equipo.id}`, h: `#/equipo/${A.modelo.equipo.id}` }, { t: 'Calidad de datos' }]);
   const regs = Object.values(A.puntos).flatMap((a) => a.registros.map((r) => ({ ...r, punto: a.punto })));
   const sosp = regs.filter((r) => r.calidad?.sospechoso);
-  const info = regs.filter((r) => r.calidad && !r.calidad.sospechoso);
+  const variaciones = regs.filter((r) => r.calidad && !r.calidad.sospechoso);
   const ni = regs.filter((r) => r.L === null);
   const noDoc = regs.filter((r) => r.eventoNoDocumentado);
   const pend = sosp.filter((r) => !r.decision).length;
@@ -20,10 +21,10 @@ export function render(root, app) {
   const imgs = [...new Set(A.modelo.mediciones.flatMap((m) => m.imagenes || []).filter((x) => !x.startsWith('data:')))];
 
   root.innerHTML = `
-  <div class="cabecera"><div><h1>Calidad de datos</h1><p>«Los datos vienen de campo. Pueden tener valores atípicos o inconsistencias.» La plataforma los detecta, los <b>marca sin borrarlos</b> y los excluye de las tendencias hasta que usted decida.</p></div></div>
+  <div class="cabecera"><div><h1>Calidad de datos ${info(`<p>«Los datos vienen de campo; pueden tener valores atípicos o inconsistencias.» La plataforma los detecta, los <b>marca sin borrarlos</b> y los excluye de las tendencias hasta que usted decida.</p><p><b>Reglas:</b> salto que no sigue la tendencia (posible dígito extra); 0 sin comentario de reparación (probable N/I); disminución sin reparación (≤ ${cfg.toleranciaMedicionMm} mm = variación de medición, informativa; mayor = sospechosa).</p><p><b>Decisiones:</b> «Es real» lo incorpora; «Descartar» lo trata como N/I; «Corregir» usa el valor indicado. Quedan registradas y se exportan en la hoja Calidad.</p>`)}</h1></div></div>
   <div class="kpis">
     <div class="kpi"><div class="t">Datos sospechosos</div><div class="v" style="color:#c7a8f0">${sosp.length}</div><div class="d">${pend} pendientes de decisión</div></div>
-    <div class="kpi"><div class="t">Variaciones de medición</div><div class="v">${info.length}</div><div class="d">disminuciones ≤ ${cfg.toleranciaMedicionMm} mm sin reparación</div></div>
+    <div class="kpi"><div class="t">Variaciones de medición</div><div class="v">${variaciones.length}</div><div class="d">disminuciones ≤ ${cfg.toleranciaMedicionMm} mm sin reparación</div></div>
     <div class="kpi"><div class="t">No inspeccionados (N/I)</div><div class="v">${ni.length}</div><div class="d">celdas vacías; nunca se convierten en 0</div></div>
     <div class="kpi"><div class="t">Reparaciones sin comentario</div><div class="v">${noDoc.length}</div><div class="d">caídas a 0 aceptadas sin registro</div></div>
     <div class="kpi"><div class="t">Zonas con fotos antiguas</div><div class="v">${Object.values(A.fotos).filter((z) => z.desactualizada).length}</div><div class="d">de ${Object.keys(A.fotos).length}</div></div>
@@ -32,7 +33,6 @@ export function render(root, app) {
 
   <div class="panel" style="border-color:var(--sospechoso)">
     <h2>Datos sospechosos · requieren decisión</h2>
-    <p class="tenue" style="font-size:.88rem">«Es real» lo incorpora a tendencias y estado; «Descartar» lo trata como N/I; «Corregir» usa el valor indicado (se propone una corrección cuando es evidente). La decisión queda registrada y se exporta en la hoja <i>Calidad</i>.</p>
     ${sosp.map((r) => `<div class="alerta-item"><div><span class="chip violeta">${{ atipico: 'Atípico', 'cero-sin-reparacion': '0 sin reparación', disminucion: 'Disminución' }[r.calidad.tipo]}</span></div>
       <div><b><a href="#/punto/${r.codigo}">${r.codigo}</a> · ${fFecha(r.fecha)} · registrado ${fMm(r.L)}</b> ${estadoHTML(r.estado, !r.decision)}
       <p>${esc(r.calidad.motivo)}</p><p class="tenue" style="font-size:.82rem">Contexto: ${contexto(A.puntos[r.codigo], r)}</p>${decisionHTML(r)}</div><div></div></div>`).join('') || '<p class="tenue">No se detectaron datos sospechosos.</p>'}
@@ -40,16 +40,15 @@ export function render(root, app) {
   <div class="espacio"></div>
 
   <div class="rejilla c2">
-    <div class="panel"><h2>Variaciones de medición (informativo)</h2>
-      <p class="tenue" style="font-size:.88rem">Disminuciones pequeñas sin reparación: típicas del error de medición en campo. Se conservan en la tendencia.</p>
-      <ul class="lista-simple">${info.map((r) => `<li><a href="#/punto/${r.codigo}">${r.codigo}</a> · ${fFecha(r.fecha)}: ${esc(r.calidad.motivo)}</li>`).join('') || '<li class="tenue">Ninguna.</li>'}</ul>
+    <div class="panel"><h2>Variaciones de medición ${info('Disminuciones pequeñas sin reparación, dentro de la tolerancia: típicas del error de medición en campo. Se conservan en la tendencia (informativo).')}</h2>
+      <ul class="lista-simple">${variaciones.map((r) => `<li><a href="#/punto/${r.codigo}">${r.codigo}</a> · ${fFecha(r.fecha)}: ${esc(r.calidad.motivo)}</li>`).join('') || '<li class="tenue">Ninguna.</li>'}</ul>
       ${noDoc.length ? `<h3 style="margin-top:14px">Reparaciones no documentadas</h3><ul class="lista-simple">${noDoc.map((r) => `<li><a href="#/punto/${r.codigo}">${r.codigo}</a> · ${fFecha(r.fecha)}: caída a 0 sin comentario, tratada como reparación.</li>`).join('')}</ul>` : ''}
     </div>
-    <div class="panel"><h2>Puntos no inspeccionados (N/I)</h2>
+    <div class="panel"><h2>Puntos no inspeccionados (N/I) ${info('Una celda vacía en el Excel significa «no inspeccionado» (acceso, limpieza, programación). Nunca se convierte en 0; la plataforma alerta cuando un punto acumula N/I.')}</h2>
       <table><thead><tr><th>Punto</th><th>Fechas N/I</th></tr></thead><tbody>
       ${Object.values(A.puntos).filter((a) => a.registros.some((r) => r.L === null)).map((a) => `<tr><td><a href="#/punto/${a.codigo}">${a.codigo}</a></td><td>${a.registros.filter((r) => r.L === null).map((r) => fFecha(r.fecha)).join(', ')}</td></tr>`).join('')}
       </tbody></table>
-      <p class="tenue" style="font-size:.85rem">Una celda vacía en el Excel significa «no inspeccionado» (acceso, limpieza, programación). La plataforma nunca la convierte en 0 y alerta cuando un punto acumula N/I.</p>
+
     </div>
   </div>
   <div class="espacio"></div>

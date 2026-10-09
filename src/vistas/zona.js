@@ -1,5 +1,6 @@
 // Vista Zona: ¿dónde están las grietas de esta zona y cuál requiere acción?
 import { simular } from '../reglas.js';
+import { info } from '../ui/ayuda.js';
 import { esquemaHTML } from '../ui/esquema.js';
 import { graficoMini } from '../ui/grafico.js';
 import { COLOR, esc, estadoHTML, fFecha, fMm, fNum, fTasa, rutaImagen } from '../ui/formato.js';
@@ -18,7 +19,7 @@ export function render(root, app, [zonaId]) {
 
   root.innerHTML = `
   <div class="cabecera">
-    <div><h1>${esc(z.nombre)} ${estadoHTML(kz.estado)}</h1><p>¿Dónde están las grietas y cuál requiere acción? Clic en un punto del esquema para ver su historial.</p></div>
+    <div><h1>${esc(z.nombre)} ${estadoHTML(kz.estado)} ${info(`<p><b>¿Dónde están las grietas y cuál requiere acción?</b> Los círculos del esquema son los puntos de inspección en su ubicación real, coloreados por estado; los que pulsan están en Alerta o Crítico y el borde violeta marca un dato sospechoso pendiente. Clic abre el historial del punto.</p><p>Umbrales de la zona: Caution ${ps[0].punto.caution} mm · Danger ${ps[0].punto.danger} mm.</p>`)}</h1></div>
     <div class="fila no-print">${Object.entries(cfg.zonas).filter(([id]) => id !== zonaId).map(([id, x]) => `<a class="btn chico" href="#/zona/${id}">${esc(x.nombre)}</a>`).join('')}</div>
   </div>
   ${sim ? `<div class="aviso violeta fila entre"><span>Mostrando estado <b>proyectado</b> a +${fNum(app.sim.dh)} h (${fFecha(sim.fecha)}) desde el simulador.</span><button class="btn chico" id="simOff">Ver estado actual</button></div>` : ''}
@@ -34,8 +35,7 @@ export function render(root, app, [zonaId]) {
         <div class="kpi"><div class="t">Tasa media</div><div class="v" style="font-size:1.2rem">${fTasa(kz.tasaMedia)}</div><div class="d">grietas activas</div></div>
         <div class="kpi"><div class="t">Horas en Crítico</div><div class="v">${fNum(kz.horasCritico)}</div><div class="d">operadas sobre Danger</div></div>
       </div>
-      <p class="tenue" style="font-size:.85rem">Umbrales de la zona: Caution ${ps[0].punto.caution} mm · Danger ${ps[0].punto.danger} mm.
-      Registro fotográfico: ${fz?.ultima ? `última foto ${fFecha(fz.ultima)}${fz.desactualizada ? ` <b style="color:#f2bd4c">(${fz.inspeccionesSinFoto} inspecciones sin foto nueva)</b>` : ''}` : 'sin fotos'}.</p>
+      <p class="tenue" style="font-size:.85rem">Fotos: ${fz?.ultima ? `última ${fFecha(fz.ultima)}${fz.desactualizada ? ` <b style="color:#f2bd4c">(${fz.inspeccionesSinFoto} inspecciones sin foto nueva)</b>` : ''}` : 'sin fotos'}.</p>
     </div>
   </div>
   <div class="espacio"></div>

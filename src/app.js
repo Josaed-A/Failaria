@@ -15,10 +15,12 @@ import * as vAlertas from './vistas/alertas.js';
 import * as vCalidad from './vistas/calidad.js';
 import * as vReporte from './vistas/reporte.js';
 import * as vIA from './vistas/ia.js';
+import * as vSimulador from './vistas/simulador.js';
+import { activarInfo } from './ui/ayuda.js';
 
 window.__appLista = true;
 
-const RUTAS = { flota: vFlota, equipo: vEquipo, zona: vZona, punto: vPunto, registrar: vRegistrar, historial: vHistorial, alertas: vAlertas, calidad: vCalidad, reporte: vReporte, ia: vIA };
+const RUTAS = { flota: vFlota, equipo: vEquipo, zona: vZona, punto: vPunto, registrar: vRegistrar, historial: vHistorial, alertas: vAlertas, calidad: vCalidad, reporte: vReporte, ia: vIA, simulador: vSimulador };
 
 export const app = {
   cfg: CONFIG,
@@ -141,6 +143,7 @@ function pantallaSinDatos(err) {
 }
 
 async function iniciar() {
+  activarInfo();
   document.getElementById('menuBtn').addEventListener('click', (e) => {
     const n = document.getElementById('nav'); n.classList.toggle('abierto'); e.currentTarget.setAttribute('aria-expanded', n.classList.contains('abierto'));
   });

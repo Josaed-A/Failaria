@@ -1,6 +1,6 @@
 # CLAUDE.md — Plataforma de integridad estructural EX3600
 
-Contexto completo, requisitos y fases en **[PLAN.md](PLAN.md)**. Léelo antes de cualquier tarea.
+Índice de documentación en **[docs/README.md](docs/README.md)**; plan original por fases en [docs/historial/PLAN_FASES.md](docs/historial/PLAN_FASES.md).
 
 ## Qué es
 Sitio web estático tipo "simulador" (mismo estilo que `simulador_web_original` de GARDIAN):
@@ -22,16 +22,22 @@ Curso: Taller en Énfasis II — Gestión de Mantenimiento (Grupo 5). Idioma de 
 index.html            shell de la app (navegación por vistas)
 src/datos.js          lectura Excel → modelo normalizado; validación de calidad
 src/reglas.js         estado (Normal/Alerta/Crítico/N/I), tasas, proyección, alertas  ← lógica PURA, sin DOM
+src/falla.js          ley de Paris, a_crítica, modos de falla, FAD, simulación      ← lógica PURA, sin DOM
 src/almacen.js        localStorage, merge de inspecciones nuevas, export/import
-src/vistas/*.js       flota, equipo, zona, punto, registrar, alertas, reporte
-src/ui/*.js           componentes (tabla filtrable, gráfico, visor de esquema con hotspots, 3D)
+src/vistas/*.js       flota, equipo, simulador, zona, punto, registrar, historial, alertas, calidad, reporte, ia
+src/ui/ayuda.js       icono ⓘ: info(html) devuelve el botón; el texto didáctico va aquí, no en la vista
+src/ui/pala3d.js      geometría de la pala (construirPala, crearEsferas, escenaBase) reutilizada por simulador3d.js
+src/ui/simulador3d.js mapa de daño FEA por vértice, grietas a escala, tirar con el mouse
 assets/esquemas|fotos imágenes referenciadas por la columna "Imagen" del Excel
 data/                 Excel original (fuente de verdad; NO editarlo)
 tests/verify.cjs      verificación de reglas.js con node (sin dependencias)
 ```
 
 ## Reglas de trabajo
-- `reglas.js` y `datos.js` no tocan el DOM: así se prueban con `node tests/verify.cjs`. Correr tests tras cada cambio en lógica.
+- `reglas.js`, `datos.js` y `falla.js` no tocan el DOM: así se prueban con `node tests/verify.cjs`. Correr tests tras cada cambio en lógica.
+- **Poco texto en pantalla**: títulos y datos a la vista; explicaciones, reglas y supuestos dentro de `info('…')` (ⓘ). No volver a poner párrafos explicativos en las vistas.
+- Cuidado con el nombre `info`: no declarar variables locales con ese nombre en las vistas (sombrea la importación).
+- Prueba visual: `python -m http.server 8765` + Playwright (chromium headless con `--use-angle=swiftshader`) recorre las rutas y comprueba 0 errores de consola.
 - Nunca convertir celda vacía en 0: vacío = **N/I**. 0 = sin grieta detectable.
 - Umbrales siempre desde la hoja `Puntos`, nunca hardcodeados.
 - Cada dato sospechoso se **marca**, no se borra; la UI lo muestra y permite al usuario confirmarlo o descartarlo.

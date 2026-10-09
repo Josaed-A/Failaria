@@ -1,5 +1,6 @@
 // Vista Flota: ¿qué equipo necesita atención primero? (preparada para N equipos)
 import { COLOR, esc, estadoHTML, fFecha, fH, fNum, sevHTML } from '../ui/formato.js';
+import { info } from '../ui/ayuda.js';
 
 export function render(root, app) {
   const A = app.A; const cfg = app.cfg; const k = A.kpis;
@@ -11,7 +12,7 @@ export function render(root, app) {
 
   root.innerHTML = `
   <div class="cabecera">
-    <div><h1>Flota · ${esc(A.modelo.equipo.flota || cfg.equipo.flota)}</h1><p>¿Qué equipo necesita atención primero? Semáforo según el peor punto de inspección.</p></div>
+    <div><h1>Flota · ${esc(A.modelo.equipo.flota || cfg.equipo.flota)} ${info('<p><b>¿Qué equipo necesita atención primero?</b> El semáforo de cada equipo es el peor estado de sus puntos de inspección. Clic en la tarjeta para entrar al equipo.</p><p>El modelo de datos identifica el equipo en cada registro: está preparado para sumar más palas a la flota con el mismo Excel.</p>')}</h1></div>
     <div class="fila no-print">
       <button class="btn" id="bCargar" title="Cargar un historial nuevo (mismo formato de hojas)">Cargar Excel…</button>
       ${app.store.base ? '<button class="btn" id="bRepo">Usar Excel del repositorio</button>' : ''}
@@ -43,10 +44,9 @@ export function render(root, app) {
     </div>
   </div>
   <div class="espacio"></div>
-  <div class="panel tenue" style="font-size:.85rem">
-    Fuente de datos: <b>${esc(fuente)}</b> · ${A.inspecciones.length} inspecciones (${fFecha(A.inspecciones[0].fecha)} → ${fFecha(A.ultimaInsp.fecha)}) · ${k.mediciones} mediciones
-    ${nApp ? ` · <b>${nApp}</b> inspección(es) registradas en la plataforma` : ''} · Utilización calculada ${fNum(A.utilizacion, 1)} h/día · Intervalo típico entre inspecciones ${fNum(A.intervalo)} h.
-    El modelo de datos identifica el equipo en cada registro, preparado para sumar más palas a la flota.
+  <div class="panel tenue fila" style="font-size:.85rem">
+    <span>Fuente: <b>${esc(fuente)}</b> · ${A.inspecciones.length} inspecciones (${fFecha(A.inspecciones[0].fecha)} → ${fFecha(A.ultimaInsp.fecha)}) · ${k.mediciones} mediciones${nApp ? ` · <b>${nApp}</b> registradas en la plataforma` : ''}</span>
+    ${info(`<p><b>Utilización</b> ${fNum(A.utilizacion, 1)} h/día e <b>intervalo típico</b> ${fNum(A.intervalo)} h entre inspecciones, calculados con las fechas y horómetros del historial. Con ellos se convierten las horas proyectadas en fechas.</p><p>«Cargar Excel…» acepta otro historial con las mismas hojas (Historial, Puntos, Léame) sin transcribir nada.</p>`)}
   </div>`;
   root.querySelector('#bCargar').onclick = () => app.pedirExcel();
   root.querySelector('#bRepo')?.addEventListener('click', () => app.restaurarExcelRepo());

@@ -10,7 +10,7 @@ export const CONFIG = {
   excelRuta: 'data/EX3600_historial_grietas.xlsx',
   storageKey: 'ex3600.v1',
 
-  // Reglas de decisión (propuestas en PLAN.md §8; ajustables).
+  // Reglas de decisión (propuestas en docs/historial/PLAN_FASES.md §8; ajustables).
   utilizacionHDiaDefecto: 17,          // se recalcula con los datos si es posible
   intervaloInspeccionHDefecto: 750,    // se recalcula (mediana) con los datos si es posible
   toleranciaMedicionMm: 20,            // disminución ≤ tolerancia sin reparación = variación de medición
@@ -76,4 +76,18 @@ export const CONFIG = {
   ],
 
   colores: { Normal: '#2e9e5b', Alerta: '#e0a020', 'Crítico': '#d64545', 'N/I': '#7a8599', sospechoso: '#9b6bd6' },
+
+  // Simulador de falla (src/falla.js; fundamentos en docs/MANTENIMIENTO_Y_FALLA.md).
+  falla: {
+    m: 3,                      // exponente de Paris (aceros estructurales soldados: 2,5–3,5)
+    factorCritico: 1.6,        // a_crítica = factor × Danger: longitud de fractura inestable / colapso del ligamento
+    aNucleacion: 5,            // mm con los que «nace» una grieta en un punto sano bajo sobrecarga
+    sNucleacion: 0.3,          // sobreesfuerzo relativo mínimo (Δσ extra / Δσ nominal) para iniciarla
+    tasaRefDefecto: 15,        // mm/1000 h a L = Caution/2 cuando el punto no tiene historia de crecimiento
+    LrNominal: 0.45,           // relación de carga nominal σ_ref/σ_y del FAD simplificado
+    sMax: 2,                   // sobreesfuerzo máximo que aplica el mouse
+    radioInfluenciaM: 1.6,     // m: alcance del esfuerzo del mouse sobre la estructura
+    pxPorS: 220,               // píxeles de arrastre por unidad de sobreesfuerzo
+    velocidades: [10, 50, 200, 1000], // horas simuladas por segundo real
+  },
 };

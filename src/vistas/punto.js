@@ -1,5 +1,6 @@
 // Vista Punto: ¿cómo evoluciona esta grieta, cuándo cruzará los umbrales y qué hago?
 import { graficoTendencia } from '../ui/grafico.js';
+import { info } from '../ui/ayuda.js';
 import { esc, estadoHTML, fFecha, fH, fMm, fNum, fRestante, fTasa, rutaImagen, COLOR } from '../ui/formato.js';
 import { reducirImagen } from '../almacen.js';
 import { activarDecisiones, activarGaleria, decisionHTML, galeriaHTML } from './comunes.js';
@@ -37,17 +38,17 @@ export function render(root, app, [codigo]) {
   <div class="rejilla c-3-2">
     <div class="panel">
       <div class="fila entre">
-        <h2 style="margin:0">Tendencia de la grieta</h2>
+        <h2 style="margin:0">Tendencia de la grieta ${info('<p><b>Bandas:</b> verde Normal, ámbar Alerta, rojo Crítico (umbrales de la hoja Puntos).</p><p><b>Líneas azules:</b> reparaciones o cambios de componente; reinician el ciclo de la grieta.</p><p><b>Rombos violeta:</b> datos sospechosos, excluidos de la tendencia hasta confirmarlos. <b>Triángulos:</b> no inspeccionado.</p><p><b>Proyección:</b> regresión sobre el ciclo actual (exponencial solo si mejora R² en 0,05) con banda de ±2σ. Clic en un punto de la curva resalta su fila en el historial.</p>')}</h2>
         <div class="fila no-print">
           <div class="seg" id="segEje"><button data-v="fecha" class="${eje === 'fecha' ? 'on' : ''}">vs fecha</button><button data-v="horas" class="${eje === 'horas' ? 'on' : ''}">vs horas</button></div>
           <label class="fila" style="gap:5px;font-size:.85rem"><input type="checkbox" id="chkProy" ${conProy ? 'checked' : ''}> Proyección</label>
         </div>
       </div>
       <div class="grafico" style="margin-top:10px"><canvas id="gT" role="img" aria-label="Tendencia de longitud de grieta de ${codigo}"></canvas></div>
-      <small class="tenue">Bandas: verde Normal, ámbar Alerta, rojo Crítico. Líneas azules: reparaciones/cambios (reinician el ciclo). Rombos violeta: datos sospechosos excluidos hasta confirmarlos. La proyección usa solo el ciclo actual.</small>
+
     </div>
     <div class="panel">
-      <h2>¿Qué hacer?</h2>
+      <h2>¿Qué hacer? ${info('Acción y plazo del plan priorizado. «Alcanza Caution/Danger» usa la proyección del ciclo actual; la fecha, la utilización histórica. «Exposición sobre umbral» cuenta las horas que la grieta operó en Alerta o Crítico hasta repararla.')}</h2>
       <div class="aviso ${a.estadoActual === 'Crítico' ? 'rojo' : a.estadoActual === 'Alerta' ? '' : 'azul'}"><b>${esc(plan.accion)}</b>${plan.plazoFecha ? `<br>Plazo: antes de ${fFecha(plan.plazoFecha)} (≈ ${fNum(plan.plazoH)} h)` : ''}</div>
       <table><tbody>
         <tr><td>Alcanza Caution (${p.caution} mm)</td><td class="n">${a.estadoActual !== 'Normal' && a.estadoActual !== 'N/I' ? 'ya superado' : fRestante(pr.restanteCaution, A.utilizacion)}<br><small>${pr.fechaCaution && Number.isFinite(pr.restanteCaution) ? fFecha(pr.fechaCaution) : ''}</small></td></tr>

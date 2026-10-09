@@ -1,5 +1,6 @@
 // Vista IA: diagnóstico asistido por IA a partir del estado calculado por la plataforma.
 import { analizarConClaude, construirPrompt, mdSeguro, MODELO_IA } from '../ia.js';
+import { info } from '../ui/ayuda.js';
 import { leerPref, guardarPref } from '../almacen.js';
 import { esc, fFecha } from '../ui/formato.js';
 
@@ -14,7 +15,7 @@ export function render(root, app) {
   const ia = app.store.ia;
 
   root.innerHTML = `
-  <div class="cabecera"><div><h1>Análisis con IA</h1><p>La plataforma arma un prompt estructurado con el estado del equipo (JSON compacto: puntos, tendencias, alertas, calidad de datos). Úselo en Copilot/Claude o llame directamente a la API de Claude.</p></div></div>
+  <div class="cabecera"><div><h1>Análisis con IA ${info('<p>La plataforma arma un <b>prompt estructurado</b> con el estado calculado del equipo (JSON compacto: puntos, tendencias, horas hasta umbral, alertas, parada, calidad de datos, KPIs).</p><p><b>Opción A:</b> copiarlo en Copilot o Claude y pegar la respuesta. <b>Opción B:</b> llamar a la API de Claude con su clave; la solicitud va directo del navegador a api.anthropic.com y la clave solo se guarda en este navegador si lo marca.</p><p>El diagnóstico se guarda y aparece en el Reporte. La IA apoya el análisis; las alertas y el plan son reglas deterministas y la decisión es del ingeniero.</p>')}</h1></div></div>
   <div class="rejilla c2">
     <div class="panel">
       <h2>1 · Prompt generado</h2>
@@ -37,7 +38,7 @@ export function render(root, app) {
       </div>
       <label class="fila" style="gap:6px;font-size:.85rem;margin-top:6px"><input type="checkbox" id="recordar" ${guardada ? 'checked' : ''}> Recordar la clave en este navegador (localStorage; no se sube a ningún servidor ni al repositorio)</label>
       <div class="fila" style="margin-top:10px"><button class="btn prim" id="bLlamar">Analizar con IA</button><span id="estadoIA" class="tenue"></span></div>
-      <div class="aviso azul" style="font-size:.82rem">La solicitud va directo desde su navegador a api.anthropic.com con el estado del equipo (sin fotos). La IA apoya el análisis; la decisión de mantenimiento la toma el ingeniero responsable.</div>
+
     </div>
   </div>
   <div class="espacio"></div>

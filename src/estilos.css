@@ -218,3 +218,45 @@ input[type=range] { width: 100%; accent-color: var(--alerta); }
   a { color: #111; }
   .grafico { height: 260px; }
 }
+
+/* Información adicional ⓘ (ui/ayuda.js) */
+button.info { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; margin-left: 6px; padding: 0; border-radius: 50%; border: 1.5px solid var(--acento); background: transparent; color: var(--acento); font: 700 11px/1 Georgia, "Times New Roman", serif; font-style: italic; cursor: pointer; vertical-align: middle; flex: none; }
+button.info:hover, button.info:focus-visible { background: var(--acento); color: #0c1320; outline: none; }
+h1 button.info, h2 button.info { width: 20px; height: 20px; font-size: 12px; }
+.popover { position: absolute; z-index: 70; background: #101a2b; border: 1px solid #35507a; border-radius: 9px; box-shadow: 0 8px 28px rgba(0,0,0,.55); padding: 12px 30px 12px 14px; font-size: .86rem; line-height: 1.45; color: var(--texto); animation: aparecer .12s ease-out; }
+.popover p { margin: 0 0 .5em; } .popover p:last-child { margin: 0; }
+.popover ul { margin: .3em 0; padding-left: 18px; }
+.popover b { color: #cfe3ff; }
+.popover-x { position: absolute; top: 4px; right: 6px; background: none; border: 0; color: var(--texto2); font-size: 1.1rem; cursor: pointer; padding: 2px 6px; }
+.popover-x:hover { color: var(--texto); }
+@keyframes aparecer { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.cabecera h1 { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.panel h2, .panel h3 { display: flex; align-items: center; gap: 2px; }
+
+/* Simulador de falla */
+.sim-layout { display: grid; grid-template-columns: minmax(0, 3fr) minmax(300px, 1.25fr); gap: 16px; }
+.sim-barra { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; background: var(--panel2); border: 1px solid var(--borde); border-radius: 9px; margin-bottom: 10px; }
+.sim-barra .reloj { font-variant-numeric: tabular-nums; font-weight: 650; min-width: 190px; }
+.sim-barra .btn.icono { width: 38px; padding: 6px 0; text-align: center; font-size: 1rem; }
+.sim-3d { position: relative; height: 560px; border-radius: 9px; overflow: hidden; background: radial-gradient(ellipse at 50% 30%, #182338, #0a101b 75%); cursor: grab; }
+.sim-3d canvas { display: block; }
+.sim-3d.tirando { cursor: grabbing; }
+.sim-3d .hud { position: absolute; left: 10px; top: 10px; background: rgba(10,16,27,.82); border: 1px solid var(--borde); border-radius: 7px; padding: 6px 10px; font-size: .8rem; pointer-events: none; max-width: 300px; }
+.sim-3d .hud b { color: #ffb4b4; }
+.sim-3d .tip { position: absolute; pointer-events: none; background: rgba(10,16,27,.95); border: 1px solid var(--borde); padding: 6px 9px; border-radius: 6px; font-size: .8rem; display: none; white-space: nowrap; }
+.fea-leyenda { display: flex; align-items: center; gap: 8px; font-size: .78rem; color: var(--texto2); margin-top: 8px; }
+.fea-leyenda .barra-color { flex: 1; height: 10px; border-radius: 5px; background: linear-gradient(90deg, #1b2f8a, #1ea7d8, #2ec46a, #f2d23a, #ff7a1a, #d61f1f); }
+.sev-barra { position: relative; height: 8px; background: #0d1524; border-radius: 4px; overflow: hidden; min-width: 54px; }
+.sev-barra i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; }
+.sim-tabla td, .sim-tabla th { padding: 5px 5px; font-size: .82rem; white-space: nowrap; }
+.sim-tabla tr.fallado td { background: rgba(214,69,69,.12); }
+.sim-tabla tr.sel td { background: rgba(74,163,223,.12); }
+.sim-eventos { max-height: 170px; overflow: auto; font-size: .82rem; }
+.sim-eventos div { padding: 3px 0; border-bottom: 1px solid #172033; }
+.fad { width: 100%; height: auto; display: block; }
+.modo-chip { display: inline-block; padding: 1px 7px; border-radius: 9px; font-size: .72rem; font-weight: 700; }
+.modo-sin-grieta { background: #223349; color: #b4bdcc; } .modo-iniciacion { background: rgba(46,158,91,.25); color: #8fe0ad; }
+.modo-propagacion { background: rgba(224,160,32,.25); color: #f6cd6a; } .modo-acelerada { background: rgba(255,122,26,.3); color: #ffb380; }
+.modo-fractura { background: var(--critico); color: #fff; animation: parpadeo 1s infinite; }
+@keyframes parpadeo { 50% { opacity: .55; } }
+@media (max-width: 1000px) { .sim-layout { grid-template-columns: minmax(0, 1fr); } .sim-3d { height: 420px; } }

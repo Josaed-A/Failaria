@@ -1,5 +1,6 @@
 // Vista Historial: consulta filtrable de todas las mediciones + exportación.
 import { esc, estadoHTML, fFecha, fNum } from '../ui/formato.js';
+import { info } from '../ui/ayuda.js';
 import { descargar } from '../almacen.js';
 
 const filtros = { zona: '', punto: '', desde: '', hasta: '', estado: '', inspector: '', marcados: false, texto: '' };
@@ -14,7 +15,7 @@ export function render(root, app) {
   const appInsp = app.store.agregados.inspecciones;
 
   root.innerHTML = `
-  <div class="cabecera"><div><h1>Historial de inspecciones</h1><p>${A.inspecciones.length} inspecciones · ${filas.length} mediciones. Filtre por zona, punto, fecha, estado o inspector; clic en una fila abre el punto.</p></div>
+  <div class="cabecera"><div><h1>Historial de inspecciones ${info('<p>Todas las mediciones del Excel más las registradas en la plataforma. Filtre por zona, punto, fecha, estado, inspector o texto del comentario; clic en una fila abre el punto.</p><p><b>Exportar Excel</b> genera el mismo formato de hojas del original (Léame, Historial, Puntos) más una hoja Calidad con las decisiones. <b>Respaldo JSON</b> guarda también fotos y decisiones; impórtelo en otro navegador para continuar.</p>')}</h1><p>${A.inspecciones.length} inspecciones · ${filas.length} mediciones</p></div>
     <div class="fila no-print">
       <button class="btn prim" id="bXlsx" title="Mismo formato de hojas que el Excel original (Léame, Historial, Puntos) + hoja Calidad">Exportar Excel</button>
       <button class="btn" id="bCsv">CSV (filtro actual)</button>
