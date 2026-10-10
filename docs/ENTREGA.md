@@ -13,12 +13,14 @@ El archivo trae adentro el código, las librerías (SheetJS, Chart.js, Three.js)
 
 Para entregar en Teams o en el aula virtual se adjunta `Failaria.html` o el ZIP, no el link del repositorio.
 
+**Historial fijo.** `Failaria.html` siempre usa el Excel que trae adentro: no muestra «Cargar Excel…» y, al importar un respaldo JSON, ignora el Excel que ese respaldo pudiera traer. Las inspecciones registradas, decisiones y tareas sí se importan. Para cambiar el historial hay que reemplazar `data/EX3600_historial_grietas.xlsx` y regenerar el archivo. El sitio normal (`index.html` con servidor) conserva el botón.
+
 **Diagnóstico IA incluido.** El archivo trae un diagnóstico ya generado con el prompt de la vista IA y los datos hasta el 11-oct-2025, así la vista IA y el Reporte no llegan vacíos a quien lo abre. Está en `src/diagnostico_ia.js`. Si el usuario guarda otro diagnóstico, ese reemplaza al incluido en su navegador.
 
 Solo dos funciones dependen de algo externo:
 
 - **IA con llamada directa a la API de Claude:** requiere internet y una clave propia. Sin clave, la vista arma el prompt para copiarlo en cualquier asistente.
-- **Datos registrados:** se guardan en el navegador del equipo donde se abre el archivo. Para llevarlos a otro equipo se usa **Historial → Respaldo JSON** o **Exportar Excel**.
+- **Datos registrados:** se guardan en el navegador del equipo donde se abre el archivo. Para llevarlos a otro equipo se usa **Historial → Respaldo JSON**. **Exportar Excel** descarga el historial para revisarlo en una hoja de cálculo.
 
 ## Cómo generarla
 

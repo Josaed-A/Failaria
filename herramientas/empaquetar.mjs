@@ -113,13 +113,14 @@ CÓMO ABRIRLA
   librerías, el historial de inspecciones (Excel) y las imágenes de inspección.
 
 QUÉ SE GUARDA
+  El historial de inspecciones es siempre el Excel incluido; no se puede reemplazar por otro archivo.
   Las inspecciones registradas, fotos, decisiones y tareas del plan se guardan en el navegador
-  del equipo donde se abre. Para llevarlas a otro equipo: Historial > Respaldo JSON o Exportar Excel.
+  del equipo donde se abre. Para llevarlas a otro equipo: Historial > Respaldo JSON (exportar e
+  importar). Exportar Excel descarga el historial para verlo en una hoja de cálculo.
 
 OPCIONAL
   - Vista IA con llamada directa a la API de Claude: requiere internet y una clave de API propia.
     Sin clave, la vista genera el prompt para copiar en cualquier asistente.
-  - Flota > Cargar Excel... acepta otro historial con las mismas hojas (Historial y Puntos).
 `;
 
 const t0 = Date.now();

@@ -28,6 +28,9 @@ const RUTAS = { flota: vFlota, equipo: vEquipo, zona: vZona, punto: vPunto, regi
 export const app = {
   cfg: CONFIG,
   base: null,          // modelo leído del Excel
+  // En Failaria.html (recursos embebidos) el historial es siempre el Excel incluido: no se puede
+  // cargar otro ni reemplazarlo con la base de un respaldo.
+  excelFijo: !!window.__RECURSOS,
   store: null,         // datos persistidos (agregados, decisiones, ia)
   modelo: null,        // base + agregados
   A: null,             // análisis vigente
@@ -74,12 +77,14 @@ export const app = {
   },
   async importarRespaldo(file) {
     const d = almacen.leerRespaldo(await file.text());
+    if (this.excelFijo) d.base = null;
     this.store = d;
     if (d.base) this.base = d.base;
     this.guardar(); this.recalcular(); render();
     this.toast('Respaldo importado.');
   },
   async cargarExcel(file) {
+    if (this.excelFijo) return this.toast('Esta versión usa siempre el Excel incluido.', true);
     const buf = await file.arrayBuffer();
     const m = leerLibro(window.XLSX, new Uint8Array(buf), this.cfg);
     this.base = m; this.store.base = m;
@@ -149,8 +154,8 @@ function pantallaSinDatos(err) {
     <div class="panel" style="max-width:640px;margin:40px auto;text-align:center">
       <h2>Cargar historial de inspecciones</h2>
       <p class="tenue">No se pudo leer automáticamente <code>${esc(CONFIG.excelRuta)}</code>${err ? ` (${esc(err.message)})` : ''}.</p>
-      <p>Seleccione el archivo <b>EX3600_historial_grietas.xlsx</b> (hojas Historial y Puntos):</p>
-      <button class="btn prim" onclick="app.pedirExcel()">Cargar Excel…</button>
+      ${app.excelFijo ? '' : `<p>Seleccione el archivo <b>EX3600_historial_grietas.xlsx</b> (hojas Historial y Puntos):</p>
+      <button class="btn prim" onclick="app.pedirExcel()">Cargar Excel…</button>`}
     </div>`;
   app.migas([{ t: 'Inicio' }]);
 }
@@ -166,6 +171,8 @@ async function iniciar() {
     try { await app.cargarExcel(f); } catch (err) { console.error(err); app.toast('No se pudo leer el Excel: ' + err.message, true); }
   });
   app.store = almacen.cargar(CONFIG.storageKey);
+  // Un Excel cargado antes en el mismo navegador (p. ej. desde el sitio) no reemplaza al incluido.
+  if (app.excelFijo) app.store.base = null;
   window.addEventListener('hashchange', render);
   try {
     app.base = app.store.base || await leerExcelRepo();

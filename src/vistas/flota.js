@@ -13,10 +13,10 @@ export function render(root, app) {
   root.innerHTML = `
   <div class="cabecera">
     <div><h1>Flota · ${esc(A.modelo.equipo.flota || cfg.equipo.flota)} ${info('<p><b>¿Qué equipo necesita atención primero?</b> El semáforo de cada equipo es el peor estado de sus puntos de inspección. Clic en la tarjeta para entrar al equipo.</p><p>El modelo de datos identifica el equipo en cada registro: está preparado para sumar más palas a la flota con el mismo Excel.</p>')}</h1></div>
-    <div class="fila no-print">
+    ${app.excelFijo ? '' : `<div class="fila no-print">
       <button class="btn" id="bCargar" title="Cargar un historial nuevo (mismo formato de hojas)">Cargar Excel…</button>
       ${app.store.base ? '<button class="btn" id="bRepo">Usar Excel original</button>' : ''}
-    </div>
+    </div>`}
   </div>
   <div class="rejilla c-2-1">
     <a class="tarjeta" href="#/equipo/${esc(A.modelo.equipo.id)}" style="padding:20px">
@@ -46,8 +46,8 @@ export function render(root, app) {
   <div class="espacio"></div>
   <div class="panel tenue fila" style="font-size:.85rem">
     <span>Fuente: <b>${esc(fuente)}</b> · ${A.inspecciones.length} inspecciones (${fFecha(A.inspecciones[0].fecha)} → ${fFecha(A.ultimaInsp.fecha)}) · ${k.mediciones} mediciones${nApp ? ` · <b>${nApp}</b> registradas en la plataforma` : ''}</span>
-    ${info(`<p><b>Utilización</b> ${fNum(A.utilizacion, 1)} h/día e <b>intervalo típico</b> ${fNum(A.intervalo)} h entre inspecciones, calculados con las fechas y horómetros del historial. Con ellos se convierten las horas proyectadas en fechas.</p><p>«Cargar Excel…» acepta otro historial con las mismas hojas (Historial, Puntos, Léame) sin transcribir nada.</p>`)}
+    ${info(`<p><b>Utilización</b> ${fNum(A.utilizacion, 1)} h/día e <b>intervalo típico</b> ${fNum(A.intervalo)} h entre inspecciones, calculados con las fechas y horómetros del historial. Con ellos se convierten las horas proyectadas en fechas.</p>${app.excelFijo ? '<p>Esta versión trae el historial incluido en el archivo y siempre usa ese Excel.</p>' : '<p>«Cargar Excel…» acepta otro historial con las mismas hojas (Historial, Puntos, Léame) sin transcribir nada.</p>'}`)}
   </div>`;
-  root.querySelector('#bCargar').onclick = () => app.pedirExcel();
+  root.querySelector('#bCargar')?.addEventListener('click', () => app.pedirExcel());
   root.querySelector('#bRepo')?.addEventListener('click', () => app.restaurarExcelRepo());
 }
