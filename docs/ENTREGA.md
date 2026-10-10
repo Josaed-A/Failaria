@@ -20,7 +20,7 @@ Para entregar en Teams o en el aula virtual se adjunta `Failaria.html` o el ZIP,
 Solo dos funciones dependen de algo externo:
 
 - **IA con llamada directa a la API de Claude:** requiere internet y una clave propia. Sin clave, la vista arma el prompt para copiarlo en cualquier asistente.
-- **Datos registrados:** se guardan en el navegador del equipo donde se abre el archivo. Para llevarlos a otro equipo se usa **Historial → Respaldo JSON**. **Exportar Excel** descarga el historial para revisarlo en una hoja de cálculo.
+- **Datos registrados:** se guardan en el navegador del equipo donde se abre el archivo. Para llevarlos a otro equipo se usa **Historial → Respaldo JSON**. En las vistas previas de plataformas o del correo, que abren la página aislada, el navegador no deja guardar: la plataforma funciona igual, los cambios duran mientras esté abierta y el pie de Flota lo indica («cambios sin guardar en este visor»). Antes eso mostraba el error «Failed to read the 'localStorage' property…». **Exportar Excel** descarga el historial para revisarlo en una hoja de cálculo.
 
 ## Cómo generarla
 

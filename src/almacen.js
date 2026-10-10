@@ -1,4 +1,18 @@
 // Persistencia local (localStorage) + importación/exportación. Todos los accesos van en try/catch.
+// En visores aislados (iframe sandbox sin allow-same-origin: vistas previas de plataformas o del correo)
+// el navegador prohíbe localStorage y solo leerlo lanza un error; ahí se guarda en memoria mientras
+// la página esté abierta, sin mostrar errores.
+
+let _ls;
+function ls() {
+  if (_ls === undefined) {
+    try { _ls = window.localStorage; _ls.getItem('ex3600.v1'); }
+    catch { const m = new Map(); _ls = { getItem: (k) => m.get(k) ?? null, setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k), enMemoria: true }; }
+  }
+  return _ls;
+}
+/** false en visores que no permiten guardar en el navegador (los cambios duran mientras la página esté abierta). */
+export const persistente = () => !ls().enMemoria;
 
 const vacio = () => ({
   version: 1,
@@ -13,7 +27,7 @@ const vacio = () => ({
 
 export function cargar(clave) {
   try {
-    const s = localStorage.getItem(clave);
+    const s = ls().getItem(clave);
     if (s) {
       const d = JSON.parse(s);
       return { ...vacio(), ...d, agregados: { ...vacio().agregados, ...(d.agregados || {}) } };
@@ -24,14 +38,14 @@ export function cargar(clave) {
 
 /** Devuelve null si guardó, o un mensaje de error (p. ej. cuota excedida por fotos). */
 export function guardar(clave, datos) {
-  try { localStorage.setItem(clave, JSON.stringify(datos)); return null; }
+  try { ls().setItem(clave, JSON.stringify(datos)); return null; }
   catch (e) { return e?.name === 'QuotaExceededError' ? 'El almacenamiento del navegador está lleno (fotos muy pesadas). Exporte un respaldo JSON y elimine fotos.' : String(e?.message || e); }
 }
 
-export function borrar(clave) { try { localStorage.removeItem(clave); } catch { /* sin almacenamiento */ } }
+export function borrar(clave) { try { ls().removeItem(clave); } catch { /* sin almacenamiento */ } }
 
-export function leerPref(clave, def = null) { try { return localStorage.getItem(clave) ?? def; } catch { return def; } }
-export function guardarPref(clave, v) { try { if (v === null) localStorage.removeItem(clave); else localStorage.setItem(clave, v); } catch { /* sin almacenamiento */ } }
+export function leerPref(clave, def = null) { try { return ls().getItem(clave) ?? def; } catch { return def; } }
+export function guardarPref(clave, v) { try { if (v === null) ls().removeItem(clave); else ls().setItem(clave, v); } catch { /* sin almacenamiento */ } }
 
 export function descargar(nombre, contenido, tipo = 'application/octet-stream') {
   const blob = contenido instanceof Blob ? contenido : new Blob([contenido], { type: tipo });

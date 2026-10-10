@@ -1,6 +1,7 @@
 // Vista Flota: ¿qué equipo necesita atención primero? (preparada para N equipos)
 import { COLOR, esc, estadoHTML, fFecha, fH, fNum, sevHTML } from '../ui/formato.js';
 import { info } from '../ui/ayuda.js';
+import { persistente } from '../almacen.js';
 
 export function render(root, app) {
   const A = app.A; const cfg = app.cfg; const k = A.kpis;
@@ -45,8 +46,8 @@ export function render(root, app) {
   </div>
   <div class="espacio"></div>
   <div class="panel tenue fila" style="font-size:.85rem">
-    <span>Fuente: <b>${esc(fuente)}</b> · ${A.inspecciones.length} inspecciones (${fFecha(A.inspecciones[0].fecha)} → ${fFecha(A.ultimaInsp.fecha)}) · ${k.mediciones} mediciones${nApp ? ` · <b>${nApp}</b> registradas en la plataforma` : ''}</span>
-    ${info(`<p><b>Utilización</b> ${fNum(A.utilizacion, 1)} h/día e <b>intervalo típico</b> ${fNum(A.intervalo)} h entre inspecciones, calculados con las fechas y horómetros del historial. Con ellos se convierten las horas proyectadas en fechas.</p>${app.excelFijo ? '<p>Esta versión trae el historial incluido en el archivo y siempre usa ese Excel.</p>' : '<p>«Cargar Excel…» acepta otro historial con las mismas hojas (Historial, Puntos, Léame) sin transcribir nada.</p>'}`)}
+    <span>Fuente: <b>${esc(fuente)}</b> · ${A.inspecciones.length} inspecciones (${fFecha(A.inspecciones[0].fecha)} → ${fFecha(A.ultimaInsp.fecha)}) · ${k.mediciones} mediciones${nApp ? ` · <b>${nApp}</b> registradas en la plataforma` : ''}${persistente() ? '' : ' · cambios sin guardar en este visor'}</span>
+    ${info(`<p><b>Utilización</b> ${fNum(A.utilizacion, 1)} h/día e <b>intervalo típico</b> ${fNum(A.intervalo)} h entre inspecciones, calculados con las fechas y horómetros del historial. Con ellos se convierten las horas proyectadas en fechas.</p>${app.excelFijo ? '<p>Esta versión trae el historial incluido en el archivo y siempre usa ese Excel.</p>' : '<p>«Cargar Excel…» acepta otro historial con las mismas hojas (Historial, Puntos, Léame) sin transcribir nada.</p>'}${persistente() ? '' : '<p><b>Cambios sin guardar:</b> este visor (vista previa de una plataforma o del correo) no permite guardar en el navegador. Todo funciona, pero lo que se registre se pierde al cerrar. Para conservarlo, descargue Failaria.html y ábralo con doble clic.</p>'}`)}
   </div>`;
   root.querySelector('#bCargar')?.addEventListener('click', () => app.pedirExcel());
   root.querySelector('#bRepo')?.addEventListener('click', () => app.restaurarExcelRepo());
