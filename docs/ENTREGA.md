@@ -9,11 +9,11 @@ Cómo se entrega la plataforma sin depender de GitHub ni de un servidor local, c
 | `Failaria.html` | La plataforma completa en un solo archivo. Se abre con doble clic en Chrome, Edge o Firefox. |
 | `Failaria_entrega.zip` | `Failaria.html` + `LEEME.txt`. Para aulas virtuales o correos que bloquean adjuntos `.html`. |
 
-El archivo trae adentro el código, las librerías (SheetJS, Chart.js, Three.js), los estilos, el Excel del historial y las imágenes de inspección. No necesita internet, Python, servidor, GitHub ni instalación. Pesa ≈ 6 MB, casi todo por los esquemas de inspección.
+El archivo trae adentro el código, las librerías (SheetJS, Chart.js, Three.js), los estilos, los datos del historial y las imágenes de inspección. No hace falta el archivo Excel: el historial va dentro del HTML ya leído, como datos. No necesita internet, Python, servidor, GitHub ni instalación. Pesa ≈ 6 MB, casi todo por los esquemas de inspección.
 
 Para entregar en Teams o en el aula virtual se adjunta `Failaria.html` o el ZIP, no el link del repositorio.
 
-**Historial fijo.** `Failaria.html` siempre usa el Excel que trae adentro: no muestra «Cargar Excel…» y, al importar un respaldo JSON, ignora el Excel que ese respaldo pudiera traer. Las inspecciones registradas, decisiones y tareas sí se importan. Para cambiar el historial hay que reemplazar `data/EX3600_historial_grietas.xlsx` y regenerar el archivo. El sitio normal (`index.html` con servidor) conserva el botón.
+**Historial fijo.** `Failaria.html` siempre usa el historial que trae adentro: no muestra «Cargar Excel…» y, al importar un respaldo JSON, ignora el Excel que ese respaldo pudiera traer. Las inspecciones registradas, decisiones y tareas sí se importan. Para cambiar el historial hay que reemplazar `data/EX3600_historial_grietas.xlsx` y regenerar el archivo. El sitio normal (`index.html` con servidor) conserva el botón.
 
 **Diagnóstico IA incluido.** El archivo trae un diagnóstico ya generado con el prompt de la vista IA y los datos hasta el 11-oct-2025, así la vista IA y el Reporte no llegan vacíos a quien lo abre. Está en `src/diagnostico_ia.js`. Si el usuario guarda otro diagnóstico, ese reemplaza al incluido en su navegador.
 
@@ -45,9 +45,10 @@ Abrir `index.html` como archivo no sirve, porque los navegadores bloquean los m�
 
 1. **Código.** Agrupa `src/app.js` y todo lo que importa, incluidos Three.js y OrbitControls, en un script clásico con esbuild. Los `import()` dinámicos quedan dentro del mismo archivo.
 2. **Librerías y estilos.** Incrusta `vendor/*.js` y `src/estilos.css` dentro del HTML.
-3. **Datos e imágenes.** Embebe el Excel de `data/` y las imágenes de `assets/` como data URL en `window.__RECURSOS`. La función `recurso()` de `src/ui/formato.js` busca ahí antes de usar la ruta relativa, así el mismo código sirve para el sitio normal y para la versión entregable.
+3. **Datos.** Lee el Excel de `data/` con la misma función de la plataforma (`leerLibro` de `src/datos.js`) y escribe el historial ya leído como JSON en `window.__DATOS`. Al abrir el archivo, la app toma esos datos directamente: no lee ningún Excel ni hace `fetch`. Así funciona también en visores que bloquean lecturas internas, como las vistas previas de Drive, Teams o el correo, y en navegadores con políticas de seguridad estrictas.
+4. **Imágenes.** Embebe las imágenes de `assets/` como data URL en `window.__RECURSOS`. La función `recurso()` de `src/ui/formato.js` busca ahí antes de usar la ruta relativa, así el mismo código sirve para el sitio normal y para la versión entregable.
 
-Regla para cambios futuros: toda ruta a un archivo local, sea imagen, Excel u otro recurso, debe pasar por `recurso()` o `rutaImagen()`. Si no, funcionará en el servidor local pero no en `Failaria.html`.
+Reglas para cambios futuros: toda ruta a una imagen u otro archivo local debe pasar por `recurso()` o `rutaImagen()`; si no, funcionará en el servidor local pero no en `Failaria.html`. El historial de la entrega sale de `window.__DATOS`; no volver a leerlo con `fetch`.
 
 ## Comprobar antes de entregar
 

@@ -7,7 +7,7 @@ export function render(root, app) {
   app.migas([{ t: 'Flota' }]);
   const nAl = A.alertas.filter((a) => ['critica', 'alta', 'media'].includes(a.severidad));
   const top = A.alertas.filter((a) => a.severidad !== 'info').slice(0, 4);
-  const fuente = app.store.base ? 'Excel cargado por el usuario' : `Excel original (${cfg.excelRuta.split('/').pop()})`;
+  const fuente = app.store.base ? 'Excel cargado por el usuario' : app.excelFijo ? 'datos incluidos en el archivo' : `Excel original (${cfg.excelRuta.split('/').pop()})`;
   const nApp = app.store.agregados.inspecciones.length;
 
   root.innerHTML = `

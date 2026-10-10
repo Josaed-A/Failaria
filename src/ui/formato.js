@@ -37,8 +37,9 @@ export const sevHTML = (s) => `<span class="sev sev-${s}">${{ critica: 'Crítica
 
 export const COLOR = { Normal: '#2e9e5b', Alerta: '#e0a020', 'Crítico': '#d64545', 'N/I': '#7a8599', sospechoso: '#9b6bd6' };
 
-// En la versión entregable (un solo archivo HTML, ver herramientas/empaquetar.mjs) las imágenes y el Excel
-// van embebidos en window.__RECURSOS como data URL; en el sitio normal se usa la ruta relativa.
+// En la versión entregable (un solo archivo HTML, ver herramientas/empaquetar.mjs) las imágenes van
+// embebidas en window.__RECURSOS como data URL (el historial va aparte, ya leído, en window.__DATOS);
+// en el sitio normal se usa la ruta relativa.
 export const recurso = (ruta) => (typeof window !== 'undefined' && window.__RECURSOS?.[ruta]) || ruta;
 
 export function rutaImagen(img, cfg) {

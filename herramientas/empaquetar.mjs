@@ -4,20 +4,23 @@
 //   node herramientas/empaquetar.mjs
 //
 // Salida:
-//   Failaria.html               (raíz del repo, versionado) plataforma completa en un archivo: código, librerías, estilos, Excel e imágenes
+//   Failaria.html               (raíz del repo, versionado) plataforma completa en un archivo: código, librerías, estilos, datos e imágenes
 //   dist/Failaria_entrega.zip   (ignorado por git) Failaria.html + LEEME.txt, para adjuntar donde no se aceptan .html
 //
 // Cómo funciona: los módulos ES no cargan desde file://, así que src/app.js se agrupa con esbuild
 // en un script clásico (IIFE) y se incrusta en el HTML junto con vendor/ y src/estilos.css.
-// El Excel y las imágenes de assets/ se embeben como data URL en window.__RECURSOS, que
-// src/ui/formato.js (recurso, rutaImagen) consulta antes de usar la ruta relativa.
+// El Excel de data/ se lee AQUÍ, con la misma función de la plataforma (datos.js → leerLibro), y el
+// historial ya leído se incrusta como JSON en window.__DATOS: al abrir el archivo no se lee ningún
+// Excel ni se hace fetch (hay visores que lo bloquean). Las imágenes de assets/ se embeben como
+// data URL en window.__RECURSOS, que src/ui/formato.js (recurso, rutaImagen) consulta.
 // esbuild se usa solo para construir (npx lo descarga la primera vez); la plataforma sigue sin npm.
 
 import { execFileSync } from 'node:child_process';
+import { createRequire } from 'node:module';
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { deflateRawSync } from 'node:zlib';
 import { dirname, extname, join, relative, sep } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(RAIZ, 'dist');
@@ -42,9 +45,18 @@ function agrupar() {
   { cwd: RAIZ, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, shell: process.platform === 'win32' });
 }
 
-// 2. Recursos: Excel de data/ e imágenes de assets/, con la misma ruta que usa el código.
-const MIME = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif', '.svg': 'image/svg+xml',
-  '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
+// 2. Datos: el Excel de data/ leído con la misma función que usa la plataforma en el navegador.
+async function datos() {
+  const XLSX = createRequire(import.meta.url)(join(RAIZ, 'vendor/xlsx.full.min.js'));
+  const { CONFIG } = await import(pathToFileURL(join(RAIZ, 'src/config.js')));
+  const { leerLibro } = await import(pathToFileURL(join(RAIZ, 'src/datos.js')));
+  const modelo = leerLibro(XLSX, readFileSync(join(RAIZ, CONFIG.excelRuta)), CONFIG);
+  if (!modelo.inspecciones.length || !modelo.mediciones.length) throw new Error(`${CONFIG.excelRuta} no trae inspecciones o mediciones`);
+  return modelo;
+}
+
+// 3. Recursos: imágenes de assets/, con la misma ruta que usa el código.
+const MIME = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif', '.svg': 'image/svg+xml' };
 function archivos(dir) {
   const abs = join(RAIZ, dir);
   if (!existsSync(abs)) return [];
@@ -54,7 +66,7 @@ function archivos(dir) {
   });
 }
 function recursos() {
-  const lista = [...archivos('assets'), 'data/EX3600_historial_grietas.xlsx'].filter((p) => MIME[extname(p).toLowerCase()]);
+  const lista = archivos('assets').filter((p) => MIME[extname(p).toLowerCase()]);
   const mapa = {};
   for (const p of lista) {
     const clave = p.split(sep).join('/');
@@ -63,8 +75,8 @@ function recursos() {
   return mapa;
 }
 
-// 3. HTML: index.html con todo incrustado.
-function construirHTML(bundle, mapa) {
+// 4. HTML: index.html con todo incrustado.
+function construirHTML(bundle, modelo, mapa) {
   let html = leer('index.html');
   const reemplazar = (re, fn, desc) => {
     const antes = html; html = html.replace(re, fn);
@@ -77,13 +89,13 @@ function construirHTML(bundle, mapa) {
   const commit = git('describe', '--always', '--dirty').replace(/-dirty$/, ' con cambios sin commit');
   const version = [commit, FECHA].filter(Boolean).join(' · ');
   reemplazar(/<script type="module" src="src\/app\.js"><\/script>/, () =>
-    `<script>window.__FAILARIA_VERSION = ${JSON.stringify(version)};\nwindow.__RECURSOS = ${seguroScript(JSON.stringify(mapa))};</script>\n  <script>${seguroScript(bundle)}</script>`,
+    `<script>window.__FAILARIA_VERSION = ${JSON.stringify(version)};\nwindow.__DATOS = ${seguroScript(JSON.stringify(modelo))};\nwindow.__RECURSOS = ${seguroScript(JSON.stringify(mapa))};</script>\n  <script>${seguroScript(bundle)}</script>`,
   'el módulo src/app.js');
   html = html.replace('<head>', `<head>\n  <!-- Failaria · versión entregable en un solo archivo (${version}). Generado con herramientas/empaquetar.mjs; el código fuente está en el repositorio. -->`);
   return { html, version };
 }
 
-// 4. ZIP mínimo (deflate) sin dependencias.
+// 5. ZIP mínimo (deflate) sin dependencias.
 const TABLA_CRC = Array.from({ length: 256 }, (_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; return c >>> 0; });
 const crc32 = (buf) => { let c = 0xffffffff; for (const b of buf) c = TABLA_CRC[(c ^ b) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
 function zip(entradas) {
@@ -110,10 +122,11 @@ Versión: ${FECHA}
 CÓMO ABRIRLA
   Doble clic en Failaria.html. Se abre en el navegador (Chrome, Edge o Firefox) y funciona
   sin instalar nada, sin internet y sin servidor. Todo está dentro del archivo: código,
-  librerías, el historial de inspecciones (Excel) y las imágenes de inspección.
+  librerías, los datos del historial de inspecciones y las imágenes de inspección. No hace
+  falta el archivo Excel: los datos ya vienen leídos dentro del HTML.
 
 QUÉ SE GUARDA
-  El historial de inspecciones es siempre el Excel incluido; no se puede reemplazar por otro archivo.
+  El historial de inspecciones es siempre el incluido; no se puede reemplazar por otro archivo.
   Las inspecciones registradas, fotos, decisiones y tareas del plan se guardan en el navegador
   del equipo donde se abre. Para llevarlas a otro equipo: Historial > Respaldo JSON (exportar e
   importar). Exportar Excel descarga el historial para verlo en una hoja de cálculo.
@@ -126,8 +139,9 @@ OPCIONAL
 const t0 = Date.now();
 console.log(`Agrupando src/app.js con ${ESBUILD}…`);
 const bundle = agrupar();
+const modelo = await datos();
 const mapa = recursos();
-const { html, version } = construirHTML(bundle, mapa);
+const { html, version } = construirHTML(bundle, modelo, mapa);
 mkdirSync(DIST, { recursive: true });
 writeFileSync(join(RAIZ, 'Failaria.html'), html);
 writeFileSync(join(DIST, 'Failaria_entrega.zip'), zip([
@@ -135,7 +149,7 @@ writeFileSync(join(DIST, 'Failaria_entrega.zip'), zip([
   { nombre: 'Failaria/LEEME.txt', datos: Buffer.from(LEEME().replace(/\n/g, '\r\n'), 'utf8') },
 ]));
 const mb = (p) => (statSync(join(RAIZ, p)).size / 1048576).toFixed(1) + ' MB';
-console.log(`Versión ${version}: ${Object.keys(mapa).length} recursos embebidos.`);
+console.log(`Versión ${version}: historial incluido como datos (${modelo.inspecciones.length} inspecciones, ${modelo.mediciones.length} mediciones), ${Object.keys(mapa).length} imágenes embebidas.`);
 console.log(`  Failaria.html               ${mb('Failaria.html')}`);
 console.log(`  dist/Failaria_entrega.zip   ${mb('dist/Failaria_entrega.zip')}`);
 console.log(`Listo en ${((Date.now() - t0) / 1000).toFixed(1)} s.`);

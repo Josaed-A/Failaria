@@ -28,9 +28,9 @@ const RUTAS = { flota: vFlota, equipo: vEquipo, zona: vZona, punto: vPunto, regi
 export const app = {
   cfg: CONFIG,
   base: null,          // modelo leído del Excel
-  // En Failaria.html (recursos embebidos) el historial es siempre el Excel incluido: no se puede
-  // cargar otro ni reemplazarlo con la base de un respaldo.
-  excelFijo: !!window.__RECURSOS,
+  // En Failaria.html el historial viene ya leído en window.__DATOS y es fijo: no se puede
+  // cargar otro Excel ni reemplazarlo con la base de un respaldo.
+  excelFijo: !!window.__DATOS,
   store: null,         // datos persistidos (agregados, decisiones, ia)
   modelo: null,        // base + agregados
   A: null,             // análisis vigente
@@ -108,7 +108,10 @@ export const app = {
 };
 window.app = app; // útil para depurar desde la consola
 
+// Historial original. En Failaria.html llega como datos dentro del propio archivo (window.__DATOS):
+// no se lee ningún Excel ni se hace fetch, que algunos visores bloquean. En el sitio se lee data/.
 async function leerExcelRepo() {
+  if (window.__DATOS) return window.__DATOS;
   const r = await fetch(recurso(CONFIG.excelRuta), { cache: 'no-cache' });
   if (!r.ok) throw new Error(`No se encontró ${CONFIG.excelRuta} (${r.status})`);
   return leerLibro(window.XLSX, new Uint8Array(await r.arrayBuffer()), CONFIG);

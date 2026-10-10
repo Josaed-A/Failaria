@@ -16,7 +16,7 @@ Curso: Taller en Énfasis II — Gestión de Mantenimiento (Grupo 5). Idioma de 
   - `chart.umd.min.js` (Chart.js 4) + `chartjs-plugin-annotation` → tendencias con bandas Caution/Danger.
   - `three.module.min.js` (Three.js) → modelo 3D esquemático (fase 4).
 - Persistencia: `localStorage` (clave `ex3600.v1`) + exportar/importar Excel/JSON. Envolver accesos en try/catch.
-- Entrega: `node herramientas/empaquetar.mjs` → `Failaria.html` en la raíz (versionado; un solo archivo con código, vendor, CSS, Excel e imágenes embebidos; abre con doble clic en `file://`) y `dist/Failaria_entrega.zip` (`dist/` en .gitignore). Regenerar tras cada cambio y antes de cada push. Detalle en `docs/ENTREGA.md`.
+- Entrega: `node herramientas/empaquetar.mjs` → `Failaria.html` en la raíz (versionado; un solo archivo con código, vendor, CSS, historial ya leído en `window.__DATOS` (JSON, sin Excel ni fetch al abrir) e imágenes embebidas; abre con doble clic en `file://`) y `dist/Failaria_entrega.zip` (`dist/` en .gitignore). Regenerar tras cada cambio y antes de cada push. Detalle en `docs/ENTREGA.md`.
 - Desarrollo: `python -m http.server` (o `iniciar.bat`). GitHub Pages / Netlify son opcionales para un link público.
 
 ## Estructura
@@ -44,7 +44,7 @@ herramientas/         empaquetar.mjs: versión entregable en un solo archivo (di
 - **Poco texto en pantalla**: títulos y datos a la vista; explicaciones, reglas y supuestos dentro de `info('…')` (ⓘ). No volver a poner párrafos explicativos en las vistas.
 - Cuidado con el nombre `info`: no declarar variables locales con ese nombre en las vistas (sombrea la importación).
 - Nombre de la plataforma en la interfaz: **Failaria** (subtítulo «Integridad estructural · Pala Hitachi EX3600»).
-- Toda ruta a un archivo local (imagen, Excel) pasa por `recurso()` o `rutaImagen()` de `src/ui/formato.js`: en `Failaria.html` los recursos están embebidos en `window.__RECURSOS`. Un `fetch`/`src` directo funciona en el servidor pero falla en la entrega. Tras cambios, regenerar y probar `dist/Failaria.html` abierto por `file://`.
+- Toda ruta a un archivo local (imagen) pasa por `recurso()` o `rutaImagen()` de `src/ui/formato.js`: en `Failaria.html` las imágenes están embebidas en `window.__RECURSOS`. Un `src` directo funciona en el servidor pero falla en la entrega. El historial original en la entrega viene de `window.__DATOS`; no volver a leerlo con `fetch` (hay visores con CSP que lo bloquean). Tras cambios, regenerar y probar `dist/Failaria.html` abierto por `file://`.
 - Fechas del plan = horas proyectadas → `fechaDeHoras` (igual que Equipo); no adelantarlas a hoy: si ya pasaron, la tarea queda vencida.
 - El diagnóstico incluido (`src/diagnostico_ia.js`) debe coincidir con el análisis del Excel; si cambian datos o reglas y la prueba falla, regenerarlo con el prompt de la vista IA.
 - El plan de mantenimiento se siembra una vez desde el historial (`tareas.planInicial`, flag `store.planSembrado`).
